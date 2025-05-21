@@ -1,0 +1,42 @@
+# Translation file
+
+#
+# Generic
+#
+
+# Module label 'ModuleCRMClientConnectorName'
+ModuleCRMClientConnectorName = CRMClientConnector
+# Module description 'ModuleCRMClientConnectorDesc'
+ModuleCRMClientConnectorDesc = CRMClientConnector description
+
+#
+# Admin page
+#
+CRMClientConnectorSetup = CRMClientConnector setup
+Settings = Settings
+CRMClientConnectorSetupPage = CRMClientConnector setup page
+NewSection=New section
+CRMCLIENTCONNECTOR_MYPARAM1 = My param 1
+CRMCLIENTCONNECTOR_MYPARAM1Tooltip = My param 1 tooltip
+CRMCLIENTCONNECTOR_MYPARAM2=My param 2
+CRMCLIENTCONNECTOR_MYPARAM2Tooltip=My param 2 tooltip
+
+
+#
+# About page
+#
+About = About
+CRMClientConnectorAbout = About CRMClientConnector
+CRMClientConnectorAboutPage = CRMClientConnector about page
+
+#
+# Sample page
+#
+CRMClientConnectorArea = Home CRMClientConnector
+MyPageName = My page name
+
+#
+# Sample widget
+#
+MyWidget = My widget
+MyWidgetDescription = My widget description
