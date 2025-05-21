@@ -5,9 +5,9 @@
 #
 
 # Module label 'ModuleCRMClientConnectorName'
-ModuleCRMClientConnectorName = CRMClientConnector
+ModuleCRMClientConnectorName = CRM Client Connector
 # Module description 'ModuleCRMClientConnectorDesc'
-ModuleCRMClientConnectorDesc = CRMClientConnector description
+ModuleCRMClientConnectorDesc = Adds APIs and tools for external application plugins, such as Thunderbird or other apps.
 
 #
 # Admin page
