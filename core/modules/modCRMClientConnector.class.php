@@ -242,9 +242,34 @@ class modCRMClientConnector extends DolibarrModules
 		 'tabhelp'=>array(array('code'=>$langs->trans('CodeTooltipHelp'), 'field2' => 'field2tooltip'), array('code'=>$langs->trans('CodeTooltipHelp'), 'field2' => 'field2tooltip'), ...),
 		 );
 		 */
-		/* BEGIN MODULEBUILDER DICTIONARIES */
-		$this->dictionaries = array();
-		/* END MODULEBUILDER DICTIONARIES */
+
+		$this->dictionaries = array(
+			'langs'		=>'crmclientconnector@crmclientconnector',
+			// List of tables we want to see into dictonnary editor
+			'tabname' 	=> array("crmclientconnector_excluded_domains"),
+			// Label of tables
+			'tablib' 	=> array("ExcludedMailDomains"),
+			// Request to select fields
+			'tabsql' 	=> array('SELECT f.id, f.domain, f.active FROM '.MAIN_DB_PREFIX.'crmclientconnector_excluded_domains as f'),
+			// Sort order
+			'tabsqlsort' => array("domain ASC"),
+			// List of fields (result of select to show dictionary)
+			'tabfield' 	=> array("domain"),
+			// List of fields (list of fields to edit a record)
+			'tabfieldvalue' => array("domain"),
+			// List of fields (list of fields for insert)
+			'tabfieldinsert' => array("domain"),
+			// Name of columns with primary key (try to always name it 'rowid')
+			'tabrowid' 	=> array("id"),
+			// Condition to show each dictionary
+			'tabcond' 	=> array(isModEnabled('crmclientconnector')),
+			// Tooltip for every fields of dictionaries: DO NOT PUT AN EMPTY ARRAY
+			'tabhelp' 	=> array(
+				array(
+					'domain'=>$langs->trans('DomainTooltipHelp')
+				),
+			),
+		);
 
 		// Boxes/Widgets
 		// Add here list of php file(s) stored in crmclientconnector/core/boxes that contains a class to show a widget.
@@ -266,8 +291,8 @@ class modCRMClientConnector extends DolibarrModules
 			//  0 => array(
 			//      'label' => 'MyJob label',
 			//      'jobtype' => 'method',
-			//      'class' => '/crmclientconnector/class/myobject.class.php',
-			//      'objectname' => 'MyObject',
+			//      'class' => '/crmclientconnector/class/emaillink.class.php',
+			//      'objectname' => 'EmailLink',
 			//      'method' => 'doScheduledJob',
 			//      'parameters' => '',
 			//      'comment' => 'Comment',
@@ -289,24 +314,62 @@ class modCRMClientConnector extends DolibarrModules
 		$r = 0;
 		// Add here entries to declare new permissions
 		/* BEGIN MODULEBUILDER PERMISSIONS */
-		/*
-		$o = 1;
-		$this->rights[$r][0] = $this->numero . sprintf("%02d", ($o * 10) + 1); // Permission id (must not be already used)
-		$this->rights[$r][1] = 'Read objects of CRMClientConnector'; // Permission label
-		$this->rights[$r][4] = 'myobject';
-		$this->rights[$r][5] = 'read'; // In php code, permission will be checked by test if ($user->hasRight('crmclientconnector', 'myobject', 'read'))
+		$this->rights[$r][0] = $this->numero . sprintf('%02d', (0 * 10) + 0 + 1);
+		$this->rights[$r][1] = 'Read Email link object of CRMClientConnector';
+		$this->rights[$r][4] = 'emaillink';
+		$this->rights[$r][5] = 'read';
 		$r++;
-		$this->rights[$r][0] = $this->numero . sprintf("%02d", ($o * 10) + 2); // Permission id (must not be already used)
-		$this->rights[$r][1] = 'Create/Update objects of CRMClientConnector'; // Permission label
-		$this->rights[$r][4] = 'myobject';
-		$this->rights[$r][5] = 'write'; // In php code, permission will be checked by test if ($user->hasRight('crmclientconnector', 'myobject', 'write'))
+		$this->rights[$r][0] = $this->numero . sprintf('%02d', (0 * 10) + 1 + 1);
+		$this->rights[$r][1] = 'Create/Update Email link object of CRMClientConnector';
+		$this->rights[$r][4] = 'emaillink';
+		$this->rights[$r][5] = 'write';
 		$r++;
-		$this->rights[$r][0] = $this->numero . sprintf("%02d", ($o * 10) + 3); // Permission id (must not be already used)
-		$this->rights[$r][1] = 'Delete objects of CRMClientConnector'; // Permission label
-		$this->rights[$r][4] = 'myobject';
-		$this->rights[$r][5] = 'delete'; // In php code, permission will be checked by test if ($user->hasRight('crmclientconnector', 'myobject', 'delete'))
+		$this->rights[$r][0] = $this->numero . sprintf('%02d', (0 * 10) + 2 + 1);
+		$this->rights[$r][1] = 'Delete Email link object of CRMClientConnector';
+		$this->rights[$r][4] = 'emaillink';
+		$this->rights[$r][5] = 'delete';
+
+
 		$r++;
-		*/
+		$this->rights[$r][0] = $this->numero . sprintf('%02d', (1 * 10) + 0 + 1);
+		$this->rights[$r][1] = 'Read Email account object of CRMClientConnector';
+		$this->rights[$r][4] = 'emailaccount';
+		$this->rights[$r][5] = 'read';
+		$r++;
+		$this->rights[$r][0] = $this->numero . sprintf('%02d', (1 * 10) + 1 + 1);
+		$this->rights[$r][1] = 'Create/Update Email account object of CRMClientConnector';
+		$this->rights[$r][4] = 'emailaccount';
+		$this->rights[$r][5] = 'write';
+		$r++;
+		$this->rights[$r][0] = $this->numero . sprintf('%02d', (1 * 10) + 2 + 1);
+		$this->rights[$r][1] = 'Delete Email account object of CRMClientConnector';
+		$this->rights[$r][4] = 'emailaccount';
+		$this->rights[$r][5] = 'delete';
+
+
+		$r++;
+		$this->rights[$r][0] = $this->numero . sprintf('%02d', (3 * 10) + 0 + 1);
+		$this->rights[$r][1] = 'Read EmailUserMsg object of CRMClientConnector';
+		$this->rights[$r][4] = 'emailusermsg';
+		$this->rights[$r][5] = 'read';
+		$r++;
+		$this->rights[$r][0] = $this->numero . sprintf('%02d', (3 * 10) + 1 + 1);
+		$this->rights[$r][1] = 'Create/Update EmailUserMsg object of CRMClientConnector';
+		$this->rights[$r][4] = 'emailusermsg';
+		$this->rights[$r][5] = 'write';
+		$r++;
+		$this->rights[$r][0] = $this->numero . sprintf('%02d', (3 * 10) + 2 + 1);
+		$this->rights[$r][1] = 'Delete EmailUserMsg object of CRMClientConnector';
+		$this->rights[$r][4] = 'emailusermsg';
+		$this->rights[$r][5] = 'delete';
+
+		$r++;
+		$this->rights[$r][0] = $this->numero . sprintf('%02d', (4 * 10) + 0 + 1);
+		$this->rights[$r][1] = 'Read excluded mail domains';
+		$this->rights[$r][4] = 'excludeddomains';
+		$this->rights[$r][5] = 'read';
+
+
 		/* END MODULEBUILDER PERMISSIONS */
 
 
@@ -314,74 +377,53 @@ class modCRMClientConnector extends DolibarrModules
 		$this->menu = array();
 		$r = 0;
 		// Add here entries to declare new menus
-		/* BEGIN MODULEBUILDER TOPMENU */
-//		$this->menu[$r++] = array(
-//			'fk_menu'=>'', // '' if this is a top menu. For left menu, use 'fk_mainmenu=xxx' or 'fk_mainmenu=xxx,fk_leftmenu=yyy' where xxx is mainmenucode and yyy is a leftmenucode
-//			'type'=>'top', // This is a Top menu entry
-//			'titre'=>'ModuleCRMClientConnectorName',
-//			'prefix' => img_picto('', $this->picto, 'class="pictofixedwidth valignmiddle"'),
-//			'mainmenu'=>'crmclientconnector',
-//			'leftmenu'=>'',
-//			'url'=>'/crmclientconnector/crmclientconnectorindex.php',
-//			'langs'=>'crmclientconnector@crmclientconnector', // Lang file to use (without .lang) by module. File must be in langs/code_CODE/ directory.
-//			'position'=>1000 + $r,
-//			'enabled'=>'isModEnabled("crmclientconnector")', // Define condition to show or hide menu entry. Use 'isModEnabled("crmclientconnector")' if entry must be visible if module is enabled.
-//			'perms'=>'1', // Use 'perms'=>'$user->hasRight("crmclientconnector", "myobject", "read")' if you want your menu with a permission rules
-//			'target'=>'',
-//			'user'=>2, // 0=Menu for internal users, 1=external users, 2=both
-//		);
-		/* END MODULEBUILDER TOPMENU */
 
-		/* BEGIN MODULEBUILDER LEFTMENU MYOBJECT */
-		/*
 		$this->menu[$r++]=array(
-			'fk_menu'=>'fk_mainmenu=crmclientconnector',      // '' if this is a top menu. For left menu, use 'fk_mainmenu=xxx' or 'fk_mainmenu=xxx,fk_leftmenu=yyy' where xxx is mainmenucode and yyy is a leftmenucode
-			'type'=>'left',                          // This is a Left menu entry
-			'titre'=>'MyObject',
-			'prefix' => img_picto('', $this->picto, 'class="pictofixedwidth valignmiddle paddingright"'),
-			'mainmenu'=>'crmclientconnector',
-			'leftmenu'=>'myobject',
-			'url'=>'/crmclientconnector/crmclientconnectorindex.php',
-			'langs'=>'crmclientconnector@crmclientconnector',	        // Lang file to use (without .lang) by module. File must be in langs/code_CODE/ directory.
+			'fk_menu'=>'fk_mainmenu=tools',
+			'type'=>'left',
+			'titre'=>'CRM client connector',
+			'prefix' => img_picto('', 'email', 'class="paddingright pictofixedwidth valignmiddle"'),
+			'mainmenu'=>'tools',
+			'leftmenu'=>'emailaccount',
+			'url'=>'/crmclientconnector/emailaccount_list.php',
+			'langs'=>'crmclientconnector@crmclientconnector',
 			'position'=>1000+$r,
-			'enabled'=>'isModEnabled("crmclientconnector")', // Define condition to show or hide menu entry. Use 'isModEnabled("crmclientconnector")' if entry must be visible if module is enabled.
-			'perms'=>'$user->hasRight("crmclientconnector", "myobject", "read")',
+			'enabled'=>'isModEnabled("crmclientconnector")',
+			'perms'=>'$user->hasRight("crmclientconnector", "emailaccount", "read")',
 			'target'=>'',
-			'user'=>2,				                // 0=Menu for internal users, 1=external users, 2=both
-			'object'=>'MyObject'
+			'user'=>2,
+			'object'=>'EmailAccount'
 		);
 		$this->menu[$r++]=array(
-			'fk_menu'=>'fk_mainmenu=crmclientconnector,fk_leftmenu=myobject',	    // '' if this is a top menu. For left menu, use 'fk_mainmenu=xxx' or 'fk_mainmenu=xxx,fk_leftmenu=yyy' where xxx is mainmenucode and yyy is a leftmenucode
-			'type'=>'left',			                // This is a Left menu entry
-			'titre'=>'New_MyObject',
-			'mainmenu'=>'crmclientconnector',
-			'leftmenu'=>'crmclientconnector_myobject_new',
-			'url'=>'/crmclientconnector/myobject_card.php?action=create',
-			'langs'=>'crmclientconnector@crmclientconnector',	        // Lang file to use (without .lang) by module. File must be in langs/code_CODE/ directory.
+			'fk_menu'=>'fk_mainmenu=tools,fk_leftmenu=emailaccount',
+			'type'=>'left',
+			'titre'=>'List email accounts',
+			'mainmenu'=>'tools',
+			'leftmenu'=>'emailaccount_list',
+			'url'=>'/crmclientconnector/emailaccount_list.php',
+			'langs'=>'crmclientconnector@crmclientconnector',
 			'position'=>1000+$r,
-			'enabled'=>'isModEnabled("crmclientconnector")', // Define condition to show or hide menu entry. Use 'isModEnabled("crmclientconnector")' if entry must be visible if module is enabled. Use '$leftmenu==\'system\'' to show if leftmenu system is selected.
-			'perms'=>'$user->hasRight("crmclientconnector", "myobject", "write")'
+			'enabled'=>'isModEnabled("crmclientconnector")',
+			'perms'=>'$user->hasRight("crmclientconnector", "emailaccount", "read")',
 			'target'=>'',
-			'user'=>2,				                // 0=Menu for internal users, 1=external users, 2=both
-			'object'=>'MyObject'
-		);
+			'user'=>2,
+			'object'=>'EmailAccount'
+        );
 		$this->menu[$r++]=array(
-			'fk_menu'=>'fk_mainmenu=crmclientconnector,fk_leftmenu=myobject',	    // '' if this is a top menu. For left menu, use 'fk_mainmenu=xxx' or 'fk_mainmenu=xxx,fk_leftmenu=yyy' where xxx is mainmenucode and yyy is a leftmenucode
-			'type'=>'left',			                // This is a Left menu entry
-			'titre'=>'List_MyObject',
-			'mainmenu'=>'crmclientconnector',
-			'leftmenu'=>'crmclientconnector_myobject_list',
-			'url'=>'/crmclientconnector/myobject_list.php',
-			'langs'=>'crmclientconnector@crmclientconnector',	        // Lang file to use (without .lang) by module. File must be in langs/code_CODE/ directory.
+			'fk_menu'=>'fk_mainmenu=tools,fk_leftmenu=emailaccount',
+			'type'=>'left',
+			'titre'=>'New Email account',
+			'mainmenu'=>'tools',
+			'leftmenu'=>'emailaccount_new',
+			'url'=>'/crmclientconnector/emailaccount_card.php?action=create',
+			'langs'=>'crmclientconnector@crmclientconnector',
 			'position'=>1000+$r,
-			'enabled'=>'isModEnabled("crmclientconnector")', // Define condition to show or hide menu entry. Use 'isModEnabled("crmclientconnector")' if entry must be visible if module is enabled.
-			'perms'=>'$user->hasRight("crmclientconnector", "myobject", "read")'
+			'enabled'=>'isModEnabled("crmclientconnector")',
+			'perms'=>'$user->hasRight("crmclientconnector", "emailaccount", "write")',
 			'target'=>'',
-			'user'=>2,				                // 0=Menu for internal users, 1=external users, 2=both
-			'object'=>'MyObject'
+			'user'=>2,
+			'object'=>'EmailAccount'
 		);
-		*/
-		/* END MODULEBUILDER LEFTMENU MYOBJECT */
 
 
 		// Exports profiles provided by this module
@@ -390,28 +432,28 @@ class modCRMClientConnector extends DolibarrModules
 		/*
 		$langs->load("crmclientconnector@crmclientconnector");
 		$this->export_code[$r] = $this->rights_class.'_'.$r;
-		$this->export_label[$r] = 'MyObjectLines';	// Translation key (used only if key ExportDataset_xxx_z not found)
+		$this->export_label[$r] = 'EmailLinkLines';	// Translation key (used only if key ExportDataset_xxx_z not found)
 		$this->export_icon[$r] = $this->picto;
 		// Define $this->export_fields_array, $this->export_TypeFields_array and $this->export_entities_array
-		$keyforclass = 'MyObject'; $keyforclassfile='/crmclientconnector/class/myobject.class.php'; $keyforelement='myobject@crmclientconnector';
+		$keyforclass = 'EmailLink'; $keyforclassfile='/crmclientconnector/class/emaillink.class.php'; $keyforelement='emaillink@crmclientconnector';
 		include DOL_DOCUMENT_ROOT.'/core/commonfieldsinexport.inc.php';
 		//$this->export_fields_array[$r]['t.fieldtoadd']='FieldToAdd'; $this->export_TypeFields_array[$r]['t.fieldtoadd']='Text';
 		//unset($this->export_fields_array[$r]['t.fieldtoremove']);
-		//$keyforclass = 'MyObjectLine'; $keyforclassfile='/crmclientconnector/class/myobject.class.php'; $keyforelement='myobjectline@crmclientconnector'; $keyforalias='tl';
+		//$keyforclass = 'EmailLinkLine'; $keyforclassfile='/crmclientconnector/class/emaillink.class.php'; $keyforelement='emaillinkline@crmclientconnector'; $keyforalias='tl';
 		//include DOL_DOCUMENT_ROOT.'/core/commonfieldsinexport.inc.php';
-		$keyforselect='myobject'; $keyforaliasextra='extra'; $keyforelement='myobject@crmclientconnector';
+		$keyforselect='emaillink'; $keyforaliasextra='extra'; $keyforelement='emaillink@crmclientconnector';
 		include DOL_DOCUMENT_ROOT.'/core/extrafieldsinexport.inc.php';
-		//$keyforselect='myobjectline'; $keyforaliasextra='extraline'; $keyforelement='myobjectline@crmclientconnector';
+		//$keyforselect='emaillinkline'; $keyforaliasextra='extraline'; $keyforelement='emaillinkline@crmclientconnector';
 		//include DOL_DOCUMENT_ROOT.'/core/extrafieldsinexport.inc.php';
-		//$this->export_dependencies_array[$r] = array('myobjectline'=>array('tl.rowid','tl.ref')); // To force to activate one or several fields if we select some fields that need same (like to select a unique key if we ask a field of a child to avoid the DISTINCT to discard them, or for computed field than need several other fields)
+		//$this->export_dependencies_array[$r] = array('emaillinkline'=>array('tl.rowid','tl.ref')); // To force to activate one or several fields if we select some fields that need same (like to select a unique key if we ask a field of a child to avoid the DISTINCT to discard them, or for computed field than need several other fields)
 		//$this->export_special_array[$r] = array('t.field'=>'...');
 		//$this->export_examplevalues_array[$r] = array('t.field'=>'Example');
 		//$this->export_help_array[$r] = array('t.field'=>'FieldDescHelp');
 		$this->export_sql_start[$r]='SELECT DISTINCT ';
-		$this->export_sql_end[$r]  =' FROM '.MAIN_DB_PREFIX.'crmclientconnector_myobject as t';
-		//$this->export_sql_end[$r]  .=' LEFT JOIN '.MAIN_DB_PREFIX.'crmclientconnector_myobject_line as tl ON tl.fk_myobject = t.rowid';
+		$this->export_sql_end[$r]  =' FROM '.MAIN_DB_PREFIX.'crmclientconnector_emaillink as t';
+		//$this->export_sql_end[$r]  .=' LEFT JOIN '.MAIN_DB_PREFIX.'crmclientconnector_emaillink_line as tl ON tl.fk_emaillink = t.rowid';
 		$this->export_sql_end[$r] .=' WHERE 1 = 1';
-		$this->export_sql_end[$r] .=' AND t.entity IN ('.getEntity('myobject').')';
+		$this->export_sql_end[$r] .=' AND t.entity IN ('.getEntity('emaillink').')';
 		$r++; */
 		/* END MODULEBUILDER EXPORT MYOBJECT */
 
@@ -421,27 +463,27 @@ class modCRMClientConnector extends DolibarrModules
 		/*
 		$langs->load("crmclientconnector@crmclientconnector");
 		$this->import_code[$r] = $this->rights_class.'_'.$r;
-		$this->import_label[$r] = 'MyObjectLines';	// Translation key (used only if key ExportDataset_xxx_z not found)
+		$this->import_label[$r] = 'EmailLinkLines';	// Translation key (used only if key ExportDataset_xxx_z not found)
 		$this->import_icon[$r] = $this->picto;
-		$this->import_tables_array[$r] = array('t' => MAIN_DB_PREFIX.'crmclientconnector_myobject', 'extra' => MAIN_DB_PREFIX.'crmclientconnector_myobject_extrafields');
+		$this->import_tables_array[$r] = array('t' => MAIN_DB_PREFIX.'crmclientconnector_emaillink', 'extra' => MAIN_DB_PREFIX.'crmclientconnector_emaillink_extrafields');
 		$this->import_tables_creator_array[$r] = array('t' => 'fk_user_author'); // Fields to store import user id
 		$import_sample = array();
-		$keyforclass = 'MyObject'; $keyforclassfile='/crmclientconnector/class/myobject.class.php'; $keyforelement='myobject@crmclientconnector';
+		$keyforclass = 'EmailLink'; $keyforclassfile='/crmclientconnector/class/emaillink.class.php'; $keyforelement='emaillink@crmclientconnector';
 		include DOL_DOCUMENT_ROOT.'/core/commonfieldsinimport.inc.php';
 		$import_extrafield_sample = array();
-		$keyforselect='myobject'; $keyforaliasextra='extra'; $keyforelement='myobject@crmclientconnector';
+		$keyforselect='emaillink'; $keyforaliasextra='extra'; $keyforelement='emaillink@crmclientconnector';
 		include DOL_DOCUMENT_ROOT.'/core/extrafieldsinimport.inc.php';
-		$this->import_fieldshidden_array[$r] = array('extra.fk_object' => 'lastrowid-'.MAIN_DB_PREFIX.'crmclientconnector_myobject');
+		$this->import_fieldshidden_array[$r] = array('extra.fk_object' => 'lastrowid-'.MAIN_DB_PREFIX.'crmclientconnector_emaillink');
 		$this->import_regex_array[$r] = array();
 		$this->import_examplevalues_array[$r] = array_merge($import_sample, $import_extrafield_sample);
 		$this->import_updatekeys_array[$r] = array('t.ref' => 'Ref');
 		$this->import_convertvalue_array[$r] = array(
 			't.ref' => array(
 				'rule'=>'getrefifauto',
-				'class'=>(!getDolGlobalString('CRMCLIENTCONNECTOR_MYOBJECT_ADDON') ? 'mod_myobject_standard' : getDolGlobalString('CRMCLIENTCONNECTOR_MYOBJECT_ADDON')),
-				'path'=>"/core/modules/crmclientconnector/".(!getDolGlobalString('CRMCLIENTCONNECTOR_MYOBJECT_ADDON') ? 'mod_myobject_standard' : getDolGlobalString('CRMCLIENTCONNECTOR_MYOBJECT_ADDON')).'.php',
-				'classobject'=>'MyObject',
-				'pathobject'=>'/crmclientconnector/class/myobject.class.php',
+				'class'=>(!getDolGlobalString('CRMCLIENTCONNECTOR_MYOBJECT_ADDON') ? 'mod_emaillink_standard' : getDolGlobalString('CRMCLIENTCONNECTOR_MYOBJECT_ADDON')),
+				'path'=>"/core/modules/crmclientconnector/".(!getDolGlobalString('CRMCLIENTCONNECTOR_MYOBJECT_ADDON') ? 'mod_emaillink_standard' : getDolGlobalString('CRMCLIENTCONNECTOR_MYOBJECT_ADDON')).'.php',
+				'classobject'=>'EmailLink',
+				'pathobject'=>'/crmclientconnector/class/emaillink.class.php',
 			),
 			't.fk_soc' => array('rule' => 'fetchidfromref', 'file' => '/societe/class/societe.class.php', 'class' => 'Societe', 'method' => 'fetch', 'element' => 'ThirdParty'),
 			't.fk_user_valid' => array('rule' => 'fetchidfromref', 'file' => '/user/class/user.class.php', 'class' => 'User', 'method' => 'fetch', 'element' => 'user'),
@@ -488,16 +530,16 @@ class modCRMClientConnector extends DolibarrModules
 		// Document templates
 		$moduledir = dol_sanitizeFileName('crmclientconnector');
 		$myTmpObjects = array();
-		$myTmpObjects['MyObject'] = array('includerefgeneration'=>0, 'includedocgeneration'=>0);
+		$myTmpObjects['EmailLink'] = array('includerefgeneration'=>0, 'includedocgeneration'=>0);
 
 		foreach ($myTmpObjects as $myTmpObjectKey => $myTmpObjectArray) {
-			if ($myTmpObjectKey == 'MyObject') {
+			if ($myTmpObjectKey == 'EmailLink') {
 				continue;
 			}
 			if ($myTmpObjectArray['includerefgeneration']) {
-				$src = DOL_DOCUMENT_ROOT.'/install/doctemplates/'.$moduledir.'/template_myobjects.odt';
+				$src = DOL_DOCUMENT_ROOT.'/install/doctemplates/'.$moduledir.'/template_emaillinks.odt';
 				$dirodt = DOL_DATA_ROOT.($conf->entity > 1 ? '/'.$conf->entity : '').'/doctemplates/'.$moduledir;
-				$dest = $dirodt.'/template_myobjects.odt';
+				$dest = $dirodt.'/template_emaillinks.odt';
 
 				if (file_exists($src) && !file_exists($dest)) {
 					require_once DOL_DOCUMENT_ROOT.'/core/lib/files.lib.php';
