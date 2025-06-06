@@ -1081,10 +1081,11 @@ class CRMClientConnector extends DolibarrApi
 	 *
 	 * Return an array with emaillink information
 	 *
-	 * @param	int		$id				ID of emaillink
+	 * @param	string		$accountEmail imap account mail
+	 * @param	string		$msgId imap mail ID
 	 * @return  Object					Object with cleaned properties
 	 *
-	 * @url	GET emaillinks/quicksearch/{accountEmail}/{msgId}
+	 * @url	GET emaillinks/quicksearch
 	 *
 	 * @throws RestException 403 Not allowed
 	 * @throws RestException 404 Not found
@@ -1115,9 +1116,9 @@ class CRMClientConnector extends DolibarrApi
 		$sql = /** @lang MySQL */
 			'SELECT rowid id '
 			.' FROM '.$this->db->prefix().$this->emaillink->table_element.' emailLink '
-			.' JOIN '.$this->db->prefix().$this->emaileaccount->table_element.' emailAccount ON (emailLink.fk_emaileaccount = emailAccount.rowid ) '
+			.' JOIN '.$this->db->prefix().$this->emailaccount->table_element.' emailAccount ON (emailLink.fk_emailaccount = emailAccount.rowid ) '
 			.' WHERE 	emailLink.email_msgid = \''.$this->db->escape($msgId).'\' '
-			.' 		AND emailAccount.emaileaccount = \''.$this->db->escape($accountEmail).'\' ';
+			.' 		AND emailAccount.emailaccount = \''.$this->db->escape($accountEmail).'\' ';
 
 		$obj = $this->db->getRow($sql);
 		if (!$obj) {
