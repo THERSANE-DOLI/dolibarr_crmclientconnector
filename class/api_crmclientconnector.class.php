@@ -912,7 +912,24 @@ class CRMClientConnector extends DolibarrApi
 				$obj = $this->db->fetch_object($result);
 				$tmp_object = new EmailUserMsg($this->db);
 				if ($tmp_object->fetch($obj->rowid)) {
-					$obj_ret[] = $this->_filterObjectProperties($this->_cleanObjectDatas($tmp_object), $properties);
+
+					$tmp_object->fetchHelpingApiRestData();
+
+					// Backup special property
+					$backupProperty = new stdClass();
+					$backupProperty->user_full_name = $tmp_object->user_full_name;
+					$backupProperty->user_img = $tmp_object->user_img;
+					$backupProperty->user_mail_hash = $tmp_object->user_mail_hash;
+
+					$outPutObj = $this->_filterObjectProperties($this->_cleanObjectDatas($tmp_object), $properties);
+
+					// restore special property
+					$tmp_object->user_full_name = $backupProperty->user_full_name;
+					$tmp_object->user_img = $backupProperty->user_img;
+					$tmp_object->user_mail_hash = $backupProperty->user_mail_hash;
+
+
+					$obj_ret[] = $outPutObj;
 				}
 				$i++;
 			}
@@ -940,8 +957,53 @@ class CRMClientConnector extends DolibarrApi
 			throw new RestException(403);
 		}
 
+
+
+		// use for quick add
+		$emailAccountId = 0;
+		if(isset($request_data['emailAccount'])) {
+			$emailAccountStatic = new EmailAccount($this->db);
+
+			$obj = $this->db->getRow('SELECT rowid as id FROM '.$this->db->prefix().$emailAccountStatic->table_element.' WHERE email_account = \''.$this->db->escape($request_data['emailAccount']).'\' ');
+			if(!$obj){
+				throw new RestException(404, 'EmailAccount not found');
+			}
+
+			$emailAccountId = $obj->id;
+		}
+
+		if(isset($request_data['emailMsgId'])) {
+			if(empty($emailAccountId)) {
+				throw new RestException(404, 'EmailAccount not found');
+			}
+
+			$emailLink = new EmailLink($this->db);
+			$obj = $this->db->getRow('SELECT rowid as id
+											FROM '.$this->db->prefix().$emailLink->table_element.'
+											WHERE fk_email_account = \''.(int)$emailAccountId.'\'
+											AND email_msgid = \''.$this->db->escape($request_data['emailMsgId']).'\' '
+			);
+
+			if(!$obj){
+				$emailLink->fk_email_account = $emailAccountId;
+				$emailLink->email_msgid = $request_data['emailMsgId'];
+				$emailLinkId = $emailLink->create(DolibarrApiAccess::$user);
+				if($emailLinkId<=0){
+					throw new RestException(500, "Error creating EmailLink", array_merge(array($emailLink->error), $emailLink->errors));
+				}
+
+				$request_data['fk_email_link'] = $emailLinkId;
+			}else{
+				$request_data['fk_email_link'] = $obj->id;
+			}
+		}
+
+
 		// Check mandatory fields
 		$result = $this->_validateEmailUserMsg($request_data);
+		if(!$result){
+			throw new RestException(500, 'Data send invalid');
+		}
 
 		foreach ($request_data as $field => $value) {
 			if ($field === 'caller') {
@@ -1114,11 +1176,12 @@ class CRMClientConnector extends DolibarrApi
 		$this->emaillink = new EmailLink($this->db);
 
 		$sql = /** @lang MySQL */
-			'SELECT rowid id '
+			'SELECT emailLink.rowid id '
 			.' FROM '.$this->db->prefix().$this->emaillink->table_element.' emailLink '
-			.' JOIN '.$this->db->prefix().$this->emailaccount->table_element.' emailAccount ON (emailLink.fk_emailaccount = emailAccount.rowid ) '
+			.' JOIN '.$this->db->prefix().$this->emailaccount->table_element.' emailAccount ON (emailLink.fk_email_account = emailAccount.rowid ) '
 			.' WHERE 	emailLink.email_msgid = \''.$this->db->escape($msgId).'\' '
-			.' 		AND emailAccount.emailaccount = \''.$this->db->escape($accountEmail).'\' ';
+			.' 		AND emailAccount.email_account = \''.$this->db->escape($accountEmail).'\' ';
+
 
 		$obj = $this->db->getRow($sql);
 		if (!$obj) {

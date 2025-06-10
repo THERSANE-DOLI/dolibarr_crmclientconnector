@@ -17,7 +17,7 @@
 CREATE TABLE llx_crmclientconnector_emaillink(
 	rowid integer AUTO_INCREMENT PRIMARY KEY NOT NULL,
     email_msgid varchar(256) DEFAULT NULL,
-    emailaccount varchar(255) DEFAULT NULL,
+    fk_email_account varchar(255) DEFAULT NULL,
 	subject varchar(255),
 	description text,
 	note_private text, 

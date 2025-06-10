@@ -128,6 +128,9 @@ class EmailUserMsg extends CommonObject
 	public $import_key;
 	// END MODULEBUILDER PROPERTIES
 
+	public $user_img;
+	public $user_full_name;
+	public $user_mail_hash;
 
 	// If this object has a subtable with lines
 
@@ -208,6 +211,57 @@ class EmailUserMsg extends CommonObject
 				}
 			}
 		}
+	}
+
+	/**
+	 * fetch optionnal info for API REST
+	 *
+	 * @param  User $user      User that creates
+	 * @param  int 	$notrigger 0=launch triggers after, 1=disable triggers
+	 * @return int             Return integer <0 if KO, Id of created object if OK
+	 */
+	public function fetchHelpingApiRestData(){
+		global $langs;
+		if(!empty($this->fk_user_creat)) {
+			$objUsr = new User($this->db);
+			if($objUsr->fetch($this->fk_user_creat) > 0){
+				$this->user_full_name = $objUsr->getFullName($langs);
+				$this->user_img = $this->getUserImg( $objUsr);
+				$this->user_mail_hash = md5($objUsr->email);
+			}
+		}
+	}
+
+
+	/**
+	 * @param User $user
+	 * @return string html image
+	 */
+	static public function getUserImg(User $user){
+		global $conf;
+		$modulepart = 'userphoto';
+		if(!class_exists('Form')){ include_once DOL_DOCUMENT_ROOT . '/core/class/html.form.class.php'; }
+
+
+		$dir = $conf->user->dir_output;
+		if (!empty($object->photo)) {
+			if (dolIsAllowedForPreview($object->photo)) {
+				$file = get_exdir(0, 0, 0, 0, $object, 'user') . 'photos/' . getImageFileNameForSize($object->photo, '_small');
+			}
+		}
+		if (getDolGlobalString('MAIN_OLD_IMAGE_LINKS')) {
+			$altfile = $object->id . ".jpg"; // For backward compatibility
+		}
+
+		if ($dir) {
+			if (!empty($file) && file_exists($dir . "/" . $file)) {
+				return DOL_URL_ROOT . '/viewimage.php?modulepart=' . $modulepart . '&entity=' . $user->entity . '&file=' . urlencode($file) . '&cache=1';
+			} elseif (!empty($altfile) && file_exists($dir . "/" . $altfile)) {
+				return  DOL_URL_ROOT . '/viewimage.php?modulepart=' . $modulepart . '&entity=' . $user->entity . '&file=' . urlencode($altfile) . '&cache=1';
+			}
+		}
+
+		return '';
 	}
 
 	/**
@@ -798,7 +852,7 @@ class EmailUserMsg extends CommonObject
 			if ($withpicto) {
 				require_once DOL_DOCUMENT_ROOT.'/core/lib/files.lib.php';
 
-				list($class, $module) = explode('@', $this->picto);
+				[$class, $module] = explode('@', $this->picto);
 				$upload_dir = $conf->$module->multidir_output[$conf->entity]."/$class/".dol_sanitizeFileName($this->ref);
 				$filearray = dol_dir_list($upload_dir, "files");
 				$filename = $filearray[0]['name'];
