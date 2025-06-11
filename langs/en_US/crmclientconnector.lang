@@ -34,6 +34,6 @@ ThisModuleAddNewDictionary = This module add new dictionary
 ThisModuleAddNewDictionaryDesc = See dictionary page
 ThisModuleAddObjectEmailAccount = List of email accounts authorized to connect
 ThisModuleAddObjectEmailAccountLink = Visit page
-ThisModuleAddObjectEmailAccountDesc = This list of email accounts defines which users are allowed to interact with the Dolibarr APIs. For example, the "Thunderbird Dolibarr Connector" module uses this list to determine whether it should offer the option to add a note and/or a comment to an email.
+ThisModuleAddObjectEmailAccountDesc = This list of email accounts defines which mails accounts are allowed to interact with the Dolibarr APIs. For example, the "Thunderbird Dolibarr Connector" module uses this list to determine whether it should offer the option to add a note and/or a comment to an email.
 NewUsersRightsForCRMClientConnector = New rights for users
 NewUsersRightsForCRMClientConnectorDesc = Remember to grant the appropriate permissions to users who connect to Dolibarr using a client application, such as the Thunderbird Dolibarr Connector module.

@@ -317,7 +317,7 @@ echo '<span class="opacitymedium">'.$langs->trans("CRMClientConnectorSetupPage")
 
 
 print '<h4>' . $langs->trans('ThisModuleAddNewDictionary') . '</h4>';
-print '<ul><li>' . $langs->trans('ExcludedMailDomains') . '</li></ul>';
+print '<ul><li >' . $form->textwithtooltip($langs->trans('ExcludedMailDomains'),$langs->trans('DomainTooltipHelp'),2,1, img_help(1, '')) . '</li></ul>';
 print '<a href="'. DOL_URL_ROOT .'/admin/dict.php?mainmenu=home">' . $langs->trans('ThisModuleAddNewDictionaryDesc') . '</a>';
 
 print '<hr/>';
