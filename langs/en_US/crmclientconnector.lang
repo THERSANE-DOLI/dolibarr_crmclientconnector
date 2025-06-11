@@ -12,9 +12,9 @@ ModuleCRMClientConnectorDesc = Adds APIs and tools for external application plug
 #
 # Admin page
 #
-CRMClientConnectorSetup = CRMClientConnector setup
+CRMClientConnectorSetup = CRM Client Connector setup
 Settings = Settings
-CRMClientConnectorSetupPage = CRMClientConnector setup page
+CRMClientConnectorSetupPage = CRM Client Connector setup page
 NewSection=New section
 
 
@@ -22,11 +22,18 @@ NewSection=New section
 # About page
 #
 About = About
-CRMClientConnectorAbout = About CRMClientConnector
-CRMClientConnectorAboutPage = CRMClientConnector about page
+CRMClientConnectorAbout = About CRM Client Connector
+CRMClientConnectorAboutPage = CRM Client Connector about page
 
-CRMClientConnectorArea = Home CRMClientConnector
+CRMClientConnectorArea = Home CRM Client Connector
 EmailAccounts = Email accounts
 EmailAccount = Email account
 ExcludedMailDomains = Excluded email domains
 DomainTooltipHelp = Excluded email domains for search thirdparty based on email domains
+ThisModuleAddNewDictionary = This module add new dictionary
+ThisModuleAddNewDictionaryDesc = See dictionary page
+ThisModuleAddObjectEmailAccount = List of email accounts authorized to connect
+ThisModuleAddObjectEmailAccountLink = Visit page
+ThisModuleAddObjectEmailAccountDesc = This list of email accounts defines which users are allowed to interact with the Dolibarr APIs. For example, the "Thunderbird Dolibarr Connector" module uses this list to determine whether it should offer the option to add a note and/or a comment to an email.
+NewUsersRightsForCRMClientConnector = New rights for users
+NewUsersRightsForCRMClientConnectorDesc = Remember to grant the appropriate permissions to users who connect to Dolibarr using a client application, such as the Thunderbird Dolibarr Connector module.

@@ -100,65 +100,65 @@ if (!$user->admin) {
 // Enter here all parameters in your setup page
 
 // Setup conf for selection of an URL
-$item = $formSetup->newItem('CRMCLIENTCONNECTOR_MYPARAM1');
-$item->fieldOverride = (empty($_SERVER['HTTPS']) ? 'http://' : 'https://') . $_SERVER['HTTP_HOST'];
-$item->cssClass = 'minwidth500';
-
-// Setup conf for selection of a simple string input
-$item = $formSetup->newItem('CRMCLIENTCONNECTOR_MYPARAM2');
-$item->defaultFieldValue = 'default value';
-$item->fieldAttr['placeholder'] = 'A placeholder here';
-
-// Setup conf for selection of a simple textarea input but we replace the text of field title
-$item = $formSetup->newItem('CRMCLIENTCONNECTOR_MYPARAM3');
-$item->nameText = $item->getNameText().' more html text ';
-
-// Setup conf for a selection of a thirdparty
-$item = $formSetup->newItem('CRMCLIENTCONNECTOR_MYPARAM4');
-$item->setAsThirdpartyType();
-
-// Setup conf for a selection of a boolean
-$formSetup->newItem('CRMCLIENTCONNECTOR_MYPARAM5')->setAsYesNo();
-
-// Setup conf for a selection of an email template of type thirdparty
-$formSetup->newItem('CRMCLIENTCONNECTOR_MYPARAM6')->setAsEmailTemplate('thirdparty');
-
-// Setup conf for a selection of a secured key
-//$formSetup->newItem('CRMCLIENTCONNECTOR_MYPARAM7')->setAsSecureKey();
-
-// Setup conf for a selection of a product
-$formSetup->newItem('CRMCLIENTCONNECTOR_MYPARAM8')->setAsProduct();
-
-// Add a title for a new section
-$formSetup->newItem('NewSection')->setAsTitle();
-
-$TField = array(
-	'test01' => $langs->trans('test01'),
-	'test02' => $langs->trans('test02'),
-	'test03' => $langs->trans('test03'),
-	'test04' => $langs->trans('test04'),
-	'test05' => $langs->trans('test05'),
-	'test06' => $langs->trans('test06'),
-);
-
-// Setup conf for a simple combo list
-$formSetup->newItem('CRMCLIENTCONNECTOR_MYPARAM9')->setAsSelect($TField);
-
-// Setup conf for a multiselect combo list
-$item = $formSetup->newItem('CRMCLIENTCONNECTOR_MYPARAM10');
-$item->setAsMultiSelect($TField);
-$item->helpText = $langs->transnoentities('CRMCLIENTCONNECTOR_MYPARAM10');
-
-// Setup conf for a category selection
-$formSetup->newItem('CRMCLIENTCONNECTOR_CATEGORY_ID_XXX')->setAsCategory('product');
-
-// Setup conf CRMCLIENTCONNECTOR_MYPARAM10
-$item = $formSetup->newItem('CRMCLIENTCONNECTOR_MYPARAM10');
-$item->setAsColor();
-$item->defaultFieldValue = '#FF0000';
-$item->nameText = $item->getNameText().' more html text ';
-$item->fieldInputOverride = '';
-$item->helpText = $langs->transnoentities('AnHelpMessage');
+//$item = $formSetup->newItem('CRMCLIENTCONNECTOR_MYPARAM1');
+//$item->fieldOverride = (empty($_SERVER['HTTPS']) ? 'http://' : 'https://') . $_SERVER['HTTP_HOST'];
+//$item->cssClass = 'minwidth500';
+//
+//// Setup conf for selection of a simple string input
+//$item = $formSetup->newItem('CRMCLIENTCONNECTOR_MYPARAM2');
+//$item->defaultFieldValue = 'default value';
+//$item->fieldAttr['placeholder'] = 'A placeholder here';
+//
+//// Setup conf for selection of a simple textarea input but we replace the text of field title
+//$item = $formSetup->newItem('CRMCLIENTCONNECTOR_MYPARAM3');
+//$item->nameText = $item->getNameText().' more html text ';
+//
+//// Setup conf for a selection of a thirdparty
+//$item = $formSetup->newItem('CRMCLIENTCONNECTOR_MYPARAM4');
+//$item->setAsThirdpartyType();
+//
+//// Setup conf for a selection of a boolean
+//$formSetup->newItem('CRMCLIENTCONNECTOR_MYPARAM5')->setAsYesNo();
+//
+//// Setup conf for a selection of an email template of type thirdparty
+//$formSetup->newItem('CRMCLIENTCONNECTOR_MYPARAM6')->setAsEmailTemplate('thirdparty');
+//
+//// Setup conf for a selection of a secured key
+////$formSetup->newItem('CRMCLIENTCONNECTOR_MYPARAM7')->setAsSecureKey();
+//
+//// Setup conf for a selection of a product
+//$formSetup->newItem('CRMCLIENTCONNECTOR_MYPARAM8')->setAsProduct();
+//
+//// Add a title for a new section
+//$formSetup->newItem('NewSection')->setAsTitle();
+//
+//$TField = array(
+//	'test01' => $langs->trans('test01'),
+//	'test02' => $langs->trans('test02'),
+//	'test03' => $langs->trans('test03'),
+//	'test04' => $langs->trans('test04'),
+//	'test05' => $langs->trans('test05'),
+//	'test06' => $langs->trans('test06'),
+//);
+//
+//// Setup conf for a simple combo list
+//$formSetup->newItem('CRMCLIENTCONNECTOR_MYPARAM9')->setAsSelect($TField);
+//
+//// Setup conf for a multiselect combo list
+//$item = $formSetup->newItem('CRMCLIENTCONNECTOR_MYPARAM10');
+//$item->setAsMultiSelect($TField);
+//$item->helpText = $langs->transnoentities('CRMCLIENTCONNECTOR_MYPARAM10');
+//
+//// Setup conf for a category selection
+//$formSetup->newItem('CRMCLIENTCONNECTOR_CATEGORY_ID_XXX')->setAsCategory('product');
+//
+//// Setup conf CRMCLIENTCONNECTOR_MYPARAM10
+//$item = $formSetup->newItem('CRMCLIENTCONNECTOR_MYPARAM10');
+//$item->setAsColor();
+//$item->defaultFieldValue = '#FF0000';
+//$item->nameText = $item->getNameText().' more html text ';
+//$item->fieldInputOverride = '';
+//$item->helpText = $langs->transnoentities('AnHelpMessage');
 //$item->fieldValue = '';
 //$item->fieldAttr = array() ; // fields attribute only for compatible fields like input text
 //$item->fieldOverride = false; // set this var to override field output will override $fieldInputOverride and $fieldOutputOverride too
@@ -315,6 +315,25 @@ print dol_get_fiche_head($head, 'settings', $langs->trans($title), -1, "crmclien
 echo '<span class="opacitymedium">'.$langs->trans("CRMClientConnectorSetupPage").'</span><br><br>';
 
 
+
+print '<h4>' . $langs->trans('ThisModuleAddNewDictionary') . '</h4>';
+print '<ul><li>' . $langs->trans('ExcludedMailDomains') . '</li></ul>';
+print '<a href="'. DOL_URL_ROOT .'/admin/dict.php?mainmenu=home">' . $langs->trans('ThisModuleAddNewDictionaryDesc') . '</a>';
+
+print '<hr/>';
+
+print '<h4>' . $langs->trans('ThisModuleAddObjectEmailAccount') . '</h4>';
+print '<p>' . $langs->trans('ThisModuleAddObjectEmailAccountDesc') . '</p>';
+print '<p><a href="'. dol_buildpath('crmclientconnector/emailaccount_list.php', 1) .'">' . $langs->trans('ThisModuleAddObjectEmailAccountLink') . '</a></p>';
+
+print '<hr/>';
+
+print '<h4>' . $langs->trans('NewUsersRightsForCRMClientConnector') . '</h4>';
+print '<p>' . $langs->trans('NewUsersRightsForCRMClientConnectorDesc') . '</p>';
+
+print '<hr/>';
+
+
 /*if ($action == 'edit') {
  print $formSetup->generateOutput(true);
  print '<br>';
@@ -332,266 +351,6 @@ if (!empty($formSetup->items)) {
 	print '<br>'.$langs->trans("NothingToSetup");
 }
 
-
-foreach ($myTmpObjects as $myTmpObjectKey => $myTmpObjectArray) {
-	if (!empty($myTmpObjectArray['includerefgeneration'])) {
-		/*
-		 * Orders Numbering model
-		 */
-		$setupnotempty++;
-
-		print load_fiche_titre($langs->trans("NumberingModules", $myTmpObjectArray['label']), '', '');
-
-		print '<table class="noborder centpercent">';
-		print '<tr class="liste_titre">';
-		print '<td>'.$langs->trans("Name").'</td>';
-		print '<td>'.$langs->trans("Description").'</td>';
-		print '<td class="nowrap">'.$langs->trans("Example").'</td>';
-		print '<td class="center" width="60">'.$langs->trans("Status").'</td>';
-		print '<td class="center" width="16">'.$langs->trans("ShortInfo").'</td>';
-		print '</tr>'."\n";
-
-		clearstatcache();
-
-		foreach ($dirmodels as $reldir) {
-			$dir = dol_buildpath($reldir."core/modules/".$moduledir);
-
-			if (is_dir($dir)) {
-				$handle = opendir($dir);
-				if (is_resource($handle)) {
-					while (($file = readdir($handle)) !== false) {
-						if (strpos($file, 'mod_'.strtolower($myTmpObjectKey).'_') === 0 && substr($file, dol_strlen($file) - 3, 3) == 'php') {
-							$file = substr($file, 0, dol_strlen($file) - 4);
-
-							require_once $dir.'/'.$file.'.php';
-
-							$module = new $file($db);
-
-							// Show modules according to features level
-							if ($module->version == 'development' && getDolGlobalInt('MAIN_FEATURES_LEVEL') < 2) {
-								continue;
-							}
-							if ($module->version == 'experimental' && getDolGlobalInt('MAIN_FEATURES_LEVEL') < 1) {
-								continue;
-							}
-
-							if ($module->isEnabled()) {
-								dol_include_once('/'.$moduledir.'/class/'.strtolower($myTmpObjectKey).'.class.php');
-
-								print '<tr class="oddeven"><td>'.$module->name."</td><td>\n";
-								print $module->info($langs);
-								print '</td>';
-
-								// Show example of numbering model
-								print '<td class="nowrap">';
-								$tmp = $module->getExample();
-								if (preg_match('/^Error/', $tmp)) {
-									$langs->load("errors");
-									print '<div class="error">'.$langs->trans($tmp).'</div>';
-								} elseif ($tmp == 'NotConfigured') {
-									print $langs->trans($tmp);
-								} else {
-									print $tmp;
-								}
-								print '</td>'."\n";
-
-								print '<td class="center">';
-								$constforvar = 'CRMCLIENTCONNECTOR_'.strtoupper($myTmpObjectKey).'_ADDON';
-								if (getDolGlobalString($constforvar) == $file) {
-									print img_picto($langs->trans("Activated"), 'switch_on');
-								} else {
-									print '<a href="'.$_SERVER["PHP_SELF"].'?action=setmod&token='.newToken().'&object='.strtolower($myTmpObjectKey).'&value='.urlencode($file).'">';
-									print img_picto($langs->trans("Disabled"), 'switch_off');
-									print '</a>';
-								}
-								print '</td>';
-
-								$className = $myTmpObjectArray['class'];
-								$mytmpinstance = new $className($db);
-								$mytmpinstance->initAsSpecimen();
-
-								// Info
-								$htmltooltip = '';
-								$htmltooltip .= ''.$langs->trans("Version").': <b>'.$module->getVersion().'</b><br>';
-
-								$nextval = $module->getNextValue($mytmpinstance);
-								if ("$nextval" != $langs->trans("NotAvailable")) {  // Keep " on nextval
-									$htmltooltip .= ''.$langs->trans("NextValue").': ';
-									if ($nextval) {
-										if (preg_match('/^Error/', $nextval) || $nextval == 'NotConfigured') {
-											$nextval = $langs->trans($nextval);
-										}
-										$htmltooltip .= $nextval.'<br>';
-									} else {
-										$htmltooltip .= $langs->trans($module->error).'<br>';
-									}
-								}
-
-								print '<td class="center">';
-								print $form->textwithpicto('', $htmltooltip, 1, 0);
-								print '</td>';
-
-								print "</tr>\n";
-							}
-						}
-					}
-					closedir($handle);
-				}
-			}
-		}
-		print "</table><br>\n";
-	}
-
-	if (!empty($myTmpObjectArray['includedocgeneration'])) {
-		/*
-		 * Document templates generators
-		 */
-		$setupnotempty++;
-		$type = strtolower($myTmpObjectKey);
-
-		print load_fiche_titre($langs->trans("DocumentModules", $myTmpObjectKey), '', '');
-
-		// Load array def with activated templates
-		$def = array();
-		$sql = "SELECT nom";
-		$sql .= " FROM ".MAIN_DB_PREFIX."document_model";
-		$sql .= " WHERE type = '".$db->escape($type)."'";
-		$sql .= " AND entity = ".$conf->entity;
-		$resql = $db->query($sql);
-		if ($resql) {
-			$i = 0;
-			$num_rows = $db->num_rows($resql);
-			while ($i < $num_rows) {
-				$array = $db->fetch_array($resql);
-				array_push($def, $array[0]);
-				$i++;
-			}
-		} else {
-			dol_print_error($db);
-		}
-
-		print '<table class="noborder centpercent">'."\n";
-		print '<tr class="liste_titre">'."\n";
-		print '<td>'.$langs->trans("Name").'</td>';
-		print '<td>'.$langs->trans("Description").'</td>';
-		print '<td class="center" width="60">'.$langs->trans("Status")."</td>\n";
-		print '<td class="center" width="60">'.$langs->trans("Default")."</td>\n";
-		print '<td class="center" width="38">'.$langs->trans("ShortInfo").'</td>';
-		print '<td class="center" width="38">'.$langs->trans("Preview").'</td>';
-		print "</tr>\n";
-
-		clearstatcache();
-
-		foreach ($dirmodels as $reldir) {
-			foreach (array('', '/doc') as $valdir) {
-				$realpath = $reldir."core/modules/".$moduledir.$valdir;
-				$dir = dol_buildpath($realpath);
-
-				if (is_dir($dir)) {
-					$handle = opendir($dir);
-					if (is_resource($handle)) {
-						while (($file = readdir($handle)) !== false) {
-							$filelist[] = $file;
-						}
-						closedir($handle);
-						arsort($filelist);
-
-						foreach ($filelist as $file) {
-							if (preg_match('/\.modules\.php$/i', $file) && preg_match('/^(pdf_|doc_)/', $file)) {
-								if (file_exists($dir.'/'.$file)) {
-									$name = substr($file, 4, dol_strlen($file) - 16);
-									$className = substr($file, 0, dol_strlen($file) - 12);
-
-									require_once $dir.'/'.$file;
-									$module = new $className($db);
-
-									$modulequalified = 1;
-									if ($module->version == 'development' && getDolGlobalInt('MAIN_FEATURES_LEVEL') < 2) {
-										$modulequalified = 0;
-									}
-									if ($module->version == 'experimental' && getDolGlobalInt('MAIN_FEATURES_LEVEL') < 1) {
-										$modulequalified = 0;
-									}
-
-									if ($modulequalified) {
-										print '<tr class="oddeven"><td width="100">';
-										print(empty($module->name) ? $name : $module->name);
-										print "</td><td>\n";
-										if (method_exists($module, 'info')) {
-											print $module->info($langs);
-										} else {
-											print $module->description;
-										}
-										print '</td>';
-
-										// Active
-										if (in_array($name, $def)) {
-											print '<td class="center">'."\n";
-											print '<a href="'.$_SERVER["PHP_SELF"].'?action=del&token='.newToken().'&value='.urlencode($name).'">';
-											print img_picto($langs->trans("Enabled"), 'switch_on');
-											print '</a>';
-											print '</td>';
-										} else {
-											print '<td class="center">'."\n";
-											print '<a href="'.$_SERVER["PHP_SELF"].'?action=set&token='.newToken().'&value='.urlencode($name).'&scan_dir='.urlencode($module->scandir).'&label='.urlencode($module->name).'">'.img_picto($langs->trans("Disabled"), 'switch_off').'</a>';
-											print "</td>";
-										}
-
-										// Default
-										print '<td class="center">';
-										$constforvar = 'CRMCLIENTCONNECTOR_'.strtoupper($myTmpObjectKey).'_ADDON_PDF';
-										if (getDolGlobalString($constforvar) == $name) {
-											//print img_picto($langs->trans("Default"), 'on');
-											// Even if choice is the default value, we allow to disable it. Replace this with previous line if you need to disable unset
-											print '<a href="'.$_SERVER["PHP_SELF"].'?action=unsetdoc&token='.newToken().'&object='.urlencode(strtolower($myTmpObjectKey)).'&value='.urlencode($name).'&scan_dir='.urlencode($module->scandir).'&label='.urlencode($module->name).'&amp;type='.urlencode($type).'" alt="'.$langs->trans("Disable").'">'.img_picto($langs->trans("Enabled"), 'on').'</a>';
-										} else {
-											print '<a href="'.$_SERVER["PHP_SELF"].'?action=setdoc&token='.newToken().'&object='.urlencode(strtolower($myTmpObjectKey)).'&value='.urlencode($name).'&scan_dir='.urlencode($module->scandir).'&label='.urlencode($module->name).'" alt="'.$langs->trans("Default").'">'.img_picto($langs->trans("Disabled"), 'off').'</a>';
-										}
-										print '</td>';
-
-										// Info
-										$htmltooltip = ''.$langs->trans("Name").': '.$module->name;
-										$htmltooltip .= '<br>'.$langs->trans("Type").': '.($module->type ? $module->type : $langs->trans("Unknown"));
-										if ($module->type == 'pdf') {
-											$htmltooltip .= '<br>'.$langs->trans("Width").'/'.$langs->trans("Height").': '.$module->page_largeur.'/'.$module->page_hauteur;
-										}
-										$htmltooltip .= '<br>'.$langs->trans("Path").': '.preg_replace('/^\//', '', $realpath).'/'.$file;
-
-										$htmltooltip .= '<br><br><u>'.$langs->trans("FeaturesSupported").':</u>';
-										$htmltooltip .= '<br>'.$langs->trans("Logo").': '.yn($module->option_logo, 1, 1);
-										$htmltooltip .= '<br>'.$langs->trans("MultiLanguage").': '.yn($module->option_multilang, 1, 1);
-
-										print '<td class="center">';
-										print $form->textwithpicto('', $htmltooltip, 1, 0);
-										print '</td>';
-
-										// Preview
-										print '<td class="center">';
-										if ($module->type == 'pdf') {
-											$newname = preg_replace('/_'.preg_quote(strtolower($myTmpObjectKey), '/').'/', '', $name);
-											print '<a href="'.$_SERVER["PHP_SELF"].'?action=specimen&module='.urlencode($newname).'&object='.urlencode($myTmpObjectKey).'">'.img_object($langs->trans("Preview"), 'pdf').'</a>';
-										} else {
-											print img_object($langs->trans("PreviewNotAvailable"), 'generic');
-										}
-										print '</td>';
-
-										print "</tr>\n";
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-
-		print '</table>';
-	}
-}
-
-if (empty($setupnotempty)) {
-	print '<br>'.$langs->trans("NothingToSetup");
-}
 
 // Page end
 print dol_get_fiche_end();
