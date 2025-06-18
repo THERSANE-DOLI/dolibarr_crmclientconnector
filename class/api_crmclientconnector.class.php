@@ -107,7 +107,7 @@ class CRMClientConnector extends DolibarrApi
 	 * @throws RestException 403 Not allowed
 	 * @throws RestException 404 Not found
 	 */
-	public function getAllExcludedDomains($sortfield = "t.id", $sortorder = 'ASC', $limit = 0, $page = 0, $sqlfilters = '')
+	public function getAllExcludedDomains($sortfield = "t.domain", $sortorder = 'ASC', $limit = 0, $page = 0, $sqlfilters = '')
 	{
 		if (!DolibarrApiAccess::$user->hasRight('crmclientconnector', 'excludeddomains', 'read')) {
 			throw new RestException(403);
@@ -145,7 +145,7 @@ class CRMClientConnector extends DolibarrApi
 
 		$obj = $this->db->getRows($sql);
 		if (!$obj) {
-			throw new RestException(404, 'EmailAccount not found');
+			throw new RestException(404, 'excluded domain not found');
 		}
 
 		$TExcluded = [];
