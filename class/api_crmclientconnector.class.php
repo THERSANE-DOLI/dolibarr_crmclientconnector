@@ -21,6 +21,7 @@ use Luracast\Restler\RestException;
 dol_include_once('/crmclientconnector/class/emailaccount.class.php');
 dol_include_once('/crmclientconnector/class/emaillink.class.php');
 dol_include_once('/crmclientconnector/class/emailusermsg.class.php');
+dol_include_once('/crmclientconnector/lib/crmclientconnector_email_link.lib.php');
 
 
 
@@ -738,6 +739,268 @@ class CRMClientConnector extends DolibarrApi
 		);
 	}
 
+
+	/**
+	 * Map of the short type codes used by the Thunderbird doliconnector extension
+	 * (see DOLIBARR_OBJECT_TYPES in its global.lib.js) to Dolibarr's own "element" strings,
+	 * as used by fetchObjectByElement()/add_object_linked()/CommonObject::$element.
+	 *
+	 * @var array<string,string>
+	 */
+	const LINKABLE_ELEMENT_TYPES = array(
+		'ord'  => 'commande',
+		'pro'  => 'propal',
+		'inv'  => 'facture',
+		'sord' => 'order_supplier',
+		'sinv' => 'invoice_supplier',
+		'shi'  => 'shipping',
+		'con'  => 'contrat',
+		'tic'  => 'ticket',
+		'proj' => 'project',
+		'int'  => 'fichinter',
+		'mem'  => 'member',
+	);
+
+	/**
+	 * Fetch (read-only, does not create) the EmailLink for an accountEmail+msgId pair.
+	 *
+	 * @param	string	$accountEmail	Email address of the mailbox owning the message
+	 * @param	string	$msgId			Message-Id of the mail
+	 * @return	EmailLink|null			EmailLink object, or null if none exists yet
+	 */
+	private function _fetchEmailLinkReadOnly($accountEmail, $msgId)
+	{
+		if (empty($accountEmail) || empty($msgId) || !$this->_fetchImailLinkByMsgId($accountEmail, $msgId)) {
+			return null;
+		}
+		return $this->emaillink;
+	}
+
+	/**
+	 * List objects linked to the mail identified by accountEmail+msgId (documents already linked)
+	 *
+	 * @param	string	$accountEmail	Email address of the mailbox owning the message
+	 * @param	string	$msgId			Message-Id of the mail
+	 * @return	array					List of {type, elementtype, id, ref}
+	 *
+	 * @throws RestException 403 Not allowed
+	 *
+	 * @url	GET emaillinks/linkedobjects
+	 */
+	public function getEmailLinkLinkedObjects($accountEmail, $msgId)
+	{
+		if (!DolibarrApiAccess::$user->hasRight('crmclientconnector', 'emaillink', 'read')) {
+			throw new RestException(403);
+		}
+
+		$emaillink = $this->_fetchEmailLinkReadOnly($accountEmail, $msgId);
+		if (!$emaillink) {
+			return array(); // No EmailLink yet for this mail = no links yet, not an error
+		}
+
+		$emaillink->fetchObjectLinked(null, '', null, '', 'OR', 1, 'sourcetype', 1);
+
+		$typeByElement = array_flip(self::LINKABLE_ELEMENT_TYPES);
+
+		$result = array();
+		foreach ($emaillink->linkedObjects as $elementtype => $objects) {
+			if (!isset($typeByElement[$elementtype])) {
+				continue; // Not one of the types this endpoint deals with (could be the reverse link back to 'emaillink' itself)
+			}
+			foreach ($objects as $linkedObject) {
+				$result[] = array(
+					'type' => $typeByElement[$elementtype],
+					'elementtype' => $elementtype,
+					'id' => $linkedObject->id,
+					'ref' => $linkedObject->ref,
+				);
+			}
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Link a document (devis/commande/facture/...) to the mail identified by accountEmail+msgId.
+	 * Creates the EmailAccount/EmailLink rows for this mail if they don't exist yet.
+	 *
+	 * @param	array	$request_data	{accountEmail, msgId, type: short type code from LINKABLE_ELEMENT_TYPES, elementid: int}
+	 * @return	array
+	 *
+	 * @throws RestException 400 Bad request
+	 * @throws RestException 403 Not allowed
+	 * @throws RestException 404 Not found
+	 * @throws RestException 500 System error
+	 *
+	 * @url	POST emaillinks/link
+	 */
+	public function postEmailLinkLink($request_data = null)
+	{
+		if (!DolibarrApiAccess::$user->hasRight('crmclientconnector', 'emaillink', 'write')) {
+			throw new RestException(403);
+		}
+
+		$accountEmail = empty($request_data['accountEmail']) ? '' : $request_data['accountEmail'];
+		$msgId = empty($request_data['msgId']) ? '' : $request_data['msgId'];
+		$type = empty($request_data['type']) ? '' : $request_data['type'];
+		$elementid = empty($request_data['elementid']) ? 0 : (int) $request_data['elementid'];
+
+		if (empty($accountEmail) || empty($msgId) || empty($type) || !isset(self::LINKABLE_ELEMENT_TYPES[$type]) || $elementid <= 0) {
+			throw new RestException(400, 'Missing or invalid accountEmail/msgId/type/elementid');
+		}
+
+		$emaillink = crmclientconnectorGetOrCreateEmailLink($this->db, DolibarrApiAccess::$user, $accountEmail, $msgId);
+		if (!is_object($emaillink)) {
+			throw new RestException(500, 'Error creating EmailLink for this mail');
+		}
+
+		$elementtype = self::LINKABLE_ELEMENT_TYPES[$type];
+
+		$targetObject = fetchObjectByElement($elementid, $elementtype);
+		if (!is_object($targetObject)) {
+			throw new RestException(404, ucfirst($elementtype).' not found');
+		}
+
+		$result = $targetObject->add_object_linked('emaillink', $emaillink->id, DolibarrApiAccess::$user);
+		if ($result <= 0) {
+			throw new RestException(500, 'Error linking object', array_merge(array($targetObject->error), $targetObject->errors));
+		}
+
+		return array(
+			'success' => array(
+				'code' => 200,
+				'message' => 'Object linked'
+			)
+		);
+	}
+
+	/**
+	 * Unlink a document from the mail identified by accountEmail+msgId
+	 *
+	 * @param	string	$accountEmail	Email address of the mailbox owning the message
+	 * @param	string	$msgId			Message-Id of the mail
+	 * @param	string	$type			Short type code from LINKABLE_ELEMENT_TYPES
+	 * @param	int		$elementid		ID of the linked object
+	 * @return	array
+	 *
+	 * @throws RestException 400 Bad request
+	 * @throws RestException 403 Not allowed
+	 * @throws RestException 404 Not found
+	 * @throws RestException 500 System error
+	 *
+	 * @url	DELETE emaillinks/link
+	 */
+	public function deleteEmailLinkLink($accountEmail, $msgId, $type = '', $elementid = 0)
+	{
+		if (!DolibarrApiAccess::$user->hasRight('crmclientconnector', 'emaillink', 'write')) {
+			throw new RestException(403);
+		}
+
+		$elementid = (int) $elementid;
+		if (empty($type) || !isset(self::LINKABLE_ELEMENT_TYPES[$type]) || $elementid <= 0) {
+			throw new RestException(400, 'Missing or invalid type/elementid');
+		}
+
+		$emaillink = $this->_fetchEmailLinkReadOnly($accountEmail, $msgId);
+		if (!$emaillink) {
+			throw new RestException(404, 'EmailLink not found');
+		}
+
+		$elementtype = self::LINKABLE_ELEMENT_TYPES[$type];
+
+		$result = $emaillink->deleteObjectLinked($emaillink->id, 'emaillink', $elementid, $elementtype);
+		if ($result <= 0) {
+			throw new RestException(500, 'Error unlinking object : '.$emaillink->error);
+		}
+
+		return array(
+			'success' => array(
+				'code' => 200,
+				'message' => 'Object unlinked'
+			)
+		);
+	}
+
+	/**
+	 * Map of short type code => [core/modules/<dir>, $conf->global->CONSTNAME] for the active
+	 * numbering module of each document type, so Thunderbird can build a ref-detection regex from
+	 * a real example. getExample() is the only method guaranteed to exist and be reliable across
+	 * every ModeleNumRef* class - $prefix is not (some classes have several prefixes, some none).
+	 *
+	 * @var array<string,array{0:string,1:string}>
+	 */
+	const NUMBERING_MODULE_TYPES = array(
+		'pro'  => array('propale', 'PROPALE_ADDON'),
+		'ord'  => array('commande', 'COMMANDE_ADDON'),
+		'inv'  => array('facture', 'FACTURE_ADDON'),
+		'sord' => array('supplier_order', 'COMMANDE_SUPPLIER_ADDON_NUMBER'),
+		'sinv' => array('supplier_invoice', 'INVOICE_SUPPLIER_ADDON_NUMBER'),
+		'con'  => array('contract', 'CONTRACT_ADDON'),
+		'shi'  => array('expedition', 'EXPEDITION_ADDON_NUMBER'),
+		'tic'  => array('ticket', 'TICKET_ADDON'),
+		'proj' => array('project', 'PROJECT_ADDON'),
+		'int'  => array('fichinter', 'FICHEINTER_ADDON'),
+		'mem'  => array('member', 'MEMBER_CODEMEMBER_ADDON'),
+	);
+
+	/**
+	 * Return, for each document type, the active numbering module and an example ref, so an
+	 * external tool (Thunderbird doliconnector) can build a regex to detect document references
+	 * in free text (email subject/body).
+	 *
+	 * @return	array	{ "pro": {"addon": "mod_propale_marbre", "example": "PR0501-0001"}, ... }
+	 *
+	 * @throws RestException 403 Not allowed
+	 *
+	 * @url	GET numberingpatterns/
+	 */
+	public function getNumberingPatterns()
+	{
+		if (!DolibarrApiAccess::$user->hasRight('crmclientconnector', 'emaillink', 'read')) {
+			throw new RestException(403);
+		}
+
+		$result = array();
+
+		foreach (self::NUMBERING_MODULE_TYPES as $type => $config) {
+			list($moduledir, $constname) = $config;
+
+			try {
+				$activefile = getDolGlobalString($constname);
+				if (empty($activefile)) {
+					continue;
+				}
+
+				$dir = dol_buildpath('/core/modules/'.$moduledir);
+				$file = $dir.'/'.$activefile.'.php';
+				if (!file_exists($file)) {
+					continue;
+				}
+				require_once $file;
+				if (!class_exists($activefile)) {
+					continue;
+				}
+
+				$module = new $activefile();
+				$example = $module->getExample();
+				// getExample() can return a translation key instead of a real example (module not
+				// configured, or an error) - not usable to build a detection pattern from.
+				if (empty($example) || preg_match('/^Error/', $example) || $example == 'NotConfigured') {
+					continue;
+				}
+
+				$result[$type] = array(
+					'addon' => $activefile,
+					'example' => $example,
+				);
+			} catch (Exception $e) {
+				dol_syslog('getNumberingPatterns: failed for type '.$type.' : '.$e->getMessage(), LOG_WARNING);
+				continue;
+			}
+		}
+
+		return $result;
+	}
 
 	/**
 	 * Validate fields before create or update object

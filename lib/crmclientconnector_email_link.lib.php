@@ -22,6 +22,73 @@
  */
 
 /**
+ * Find the EmailLink matching an account email + a message-id, creating the EmailAccount
+ * and/or the EmailLink if they don't exist yet. Shared between the PROPAL_CREATE/ORDER_CREATE
+ * trigger (auto-link on creation from the Thunderbird popup) and the manual link/unlink API
+ * endpoints, so the account/link lookup-or-create logic (mirrored from the private
+ * CRMClientConnector::_fetchImailLinkByMsgId()) only lives in one place.
+ *
+ * @param	DoliDB	$db				Database handler
+ * @param	User	$user			User doing the create (used as fk_user_creat if a row must be created)
+ * @param	string	$accountEmail	Email address of the mailbox owning the message
+ * @param	string	$msgId			Message-Id of the mail
+ * @return	EmailLink|int			EmailLink object, or <0 if KO
+ */
+function crmclientconnectorGetOrCreateEmailLink($db, $user, $accountEmail, $msgId)
+{
+	dol_include_once('/crmclientconnector/class/emailaccount.class.php');
+	dol_include_once('/crmclientconnector/class/emaillink.class.php');
+
+	if (empty($accountEmail) || empty($msgId)) {
+		return -1;
+	}
+
+	$emailaccount = new EmailAccount($db);
+	$sql = "SELECT rowid FROM ".MAIN_DB_PREFIX.$emailaccount->table_element;
+	$sql .= " WHERE email_account = '".$db->escape($accountEmail)."'";
+	$resql = $db->query($sql);
+	if (!$resql) {
+		return -1;
+	}
+	$obj = $db->fetch_object($resql);
+	if ($obj) {
+		if ($emailaccount->fetch($obj->rowid) <= 0) {
+			return -1;
+		}
+	} else {
+		$emailaccount->email_account = $accountEmail;
+		$emailaccount->status = 1;
+		if ($emailaccount->create($user) <= 0) {
+			return -1;
+		}
+	}
+
+	$emaillink = new EmailLink($db);
+	$sql = "SELECT rowid FROM ".MAIN_DB_PREFIX.$emaillink->table_element;
+	$sql .= " WHERE fk_email_account = ".((int) $emailaccount->id);
+	$sql .= " AND email_msgid = '".$db->escape($msgId)."'";
+	$resql = $db->query($sql);
+	if (!$resql) {
+		return -1;
+	}
+	$obj = $db->fetch_object($resql);
+	if ($obj) {
+		if ($emaillink->fetch($obj->rowid) <= 0) {
+			return -1;
+		}
+		return $emaillink;
+	}
+
+	$emaillink->fk_email_account = $emailaccount->id;
+	$emaillink->email_msgid = $msgId;
+	if ($emaillink->create($user) <= 0) {
+		return -1;
+	}
+
+	return $emaillink;
+}
+
+/**
  * Prepare array of tabs for EmailLink
  *
  * @param	EmailLink	$object		EmailLink
