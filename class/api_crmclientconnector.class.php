@@ -781,7 +781,7 @@ class CRMClientConnector extends DolibarrApi
 	 *
 	 * @param	string	$accountEmail	Email address of the mailbox owning the message
 	 * @param	string	$msgId			Message-Id of the mail
-	 * @return	array					List of {type, elementtype, id, ref}
+	 * @return	array					List of {type, elementtype, id, ref, refClient, refSupplier, status, statusCode, date, totalTtc}
 	 *
 	 * @throws RestException 403 Not allowed
 	 *
@@ -798,7 +798,13 @@ class CRMClientConnector extends DolibarrApi
 			return array(); // No EmailLink yet for this mail = no links yet, not an error
 		}
 
-		$emaillink->fetchObjectLinked(null, '', null, '', 'OR', 1, 'sourcetype', 1);
+		// Explicit sourceid/sourcetype, NOT fetchObjectLinked()'s default : with no override it
+		// falls back to $emaillink->getElementType(), which prefixes the module name
+		// ('crmclientconnector_emaillink') - but postEmailLinkLink() below stores the bare literal
+		// 'emaillink' as sourcetype (it's passed as-is to add_object_linked(), never through
+		// getElementType()). Left as the default, this search criteria never matched the row it
+		// just wrote, so linkedObjects came back empty even right after a successful link.
+		$emaillink->fetchObjectLinked($emaillink->id, 'emaillink', null, '', 'OR', 1, 'sourcetype', 1);
 
 		$typeByElement = array_flip(self::LINKABLE_ELEMENT_TYPES);
 
@@ -813,6 +819,15 @@ class CRMClientConnector extends DolibarrApi
 					'elementtype' => $elementtype,
 					'id' => $linkedObject->id,
 					'ref' => $linkedObject->ref,
+					// The fields below don't all apply to every document type (a ticket has no
+					// total_ttc, a project has no ref_supplier, ...) - null when not applicable,
+					// the Thunderbird extension only shows the ones it gets.
+					'refClient' => !empty($linkedObject->ref_client) ? $linkedObject->ref_client : null,
+					'refSupplier' => !empty($linkedObject->ref_supplier) ? $linkedObject->ref_supplier : null,
+					'status' => method_exists($linkedObject, 'getLibStatut') ? $linkedObject->getLibStatut(0) : null,
+					'statusCode' => isset($linkedObject->statut) ? (int) $linkedObject->statut : (isset($linkedObject->status) ? (int) $linkedObject->status : null),
+					'date' => !empty($linkedObject->date) ? (int) $linkedObject->date : (!empty($linkedObject->date_commande) ? (int) $linkedObject->date_commande : null),
+					'totalTtc' => isset($linkedObject->total_ttc) && $linkedObject->total_ttc !== '' ? (float) $linkedObject->total_ttc : null,
 				);
 			}
 		}
@@ -861,6 +876,15 @@ class CRMClientConnector extends DolibarrApi
 			throw new RestException(404, ucfirst($elementtype).' not found');
 		}
 
+		// fetchObjectByElement() sets ->module as a convenience for its own cache/isModEnabled
+		// check, but CommonObject::add_object_linked() prefixes targettype with the module name
+		// whenever ->module is non-empty. The rest of this install's element_element rows for
+		// these types (propal->commande conversions, supplier order/proposal links, ...) never
+		// carry that prefix, because the native code creating them never sets ->module - clear it
+		// so we store the same bare elementtype ('commande', 'order_supplier', ...) as everyone
+		// else, instead of a one-off 'commande_commande'/'fournisseur_order_supplier' only we use.
+		$targetObject->module = '';
+
 		$result = $targetObject->add_object_linked('emaillink', $emaillink->id, DolibarrApiAccess::$user);
 		if ($result <= 0) {
 			throw new RestException(500, 'Error linking object', array_merge(array($targetObject->error), $targetObject->errors));
@@ -908,7 +932,16 @@ class CRMClientConnector extends DolibarrApi
 
 		$elementtype = self::LINKABLE_ELEMENT_TYPES[$type];
 
-		$result = $emaillink->deleteObjectLinked($emaillink->id, 'emaillink', $elementid, $elementtype);
+		$sql = "SELECT rowid FROM ".$this->db->prefix()."element_element";
+		$sql .= " WHERE fk_source = ".((int) $emaillink->id)." AND sourcetype = 'emaillink'";
+		$sql .= " AND fk_target = ".$elementid." AND targettype = '".$this->db->escape($elementtype)."'";
+		$resql = $this->db->query($sql);
+		if (!$resql || $this->db->num_rows($resql) == 0) {
+			throw new RestException(404, 'Link not found');
+		}
+		$rowid = (int) $this->db->fetch_object($resql)->rowid;
+
+		$result = $emaillink->deleteObjectLinked(null, '', null, '', $rowid);
 		if ($result <= 0) {
 			throw new RestException(500, 'Error unlinking object : '.$emaillink->error);
 		}
@@ -1354,7 +1387,7 @@ class CRMClientConnector extends DolibarrApi
 		// $this->emailusermsg->abc = sanitizeVal($this->emailusermsg->abc, 'alphanohtml');
 
 		if ($this->emailusermsg->update(DolibarrApiAccess::$user, false) > 0) {
-			return $this->get($id);
+			return $this->getEmailUserMsg($id);
 		} else {
 			throw new RestException(500, $this->emailusermsg->error);
 		}
