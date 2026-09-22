@@ -759,6 +759,7 @@ class CRMClientConnector extends DolibarrApi
 		'proj' => 'project',
 		'int'  => 'fichinter',
 		'mem'  => 'member',
+		'act'  => 'action',
 	);
 
 	/**
@@ -826,7 +827,7 @@ class CRMClientConnector extends DolibarrApi
 					'refSupplier' => !empty($linkedObject->ref_supplier) ? $linkedObject->ref_supplier : null,
 					'status' => method_exists($linkedObject, 'getLibStatut') ? $linkedObject->getLibStatut(0) : null,
 					'statusCode' => isset($linkedObject->statut) ? (int) $linkedObject->statut : (isset($linkedObject->status) ? (int) $linkedObject->status : null),
-					'date' => !empty($linkedObject->date) ? (int) $linkedObject->date : (!empty($linkedObject->date_commande) ? (int) $linkedObject->date_commande : null),
+					'date' => !empty($linkedObject->date) ? (int) $linkedObject->date : (!empty($linkedObject->date_commande) ? (int) $linkedObject->date_commande : (!empty($linkedObject->datep) ? (int) $linkedObject->datep : null)),
 					'totalTtc' => isset($linkedObject->total_ttc) && $linkedObject->total_ttc !== '' ? (float) $linkedObject->total_ttc : null,
 				);
 			}
@@ -1030,6 +1031,98 @@ class CRMClientConnector extends DolibarrApi
 				dol_syslog('getNumberingPatterns: failed for type '.$type.' : '.$e->getMessage(), LOG_WARNING);
 				continue;
 			}
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Map of this module's short type code (see LINKABLE_ELEMENT_TYPES above) to the Categorie
+	 * class's own type string (its MAP_ID keys), for every type that has one - 'con' (contrat)
+	 * and 'shi' (shipping) don't, Categorie has no category type for them at all.
+	 *
+	 * @var array<string,string>
+	 */
+	const CATEGORY_TYPES = array(
+		'ord'  => 'order',
+		'pro'  => 'propal',
+		'inv'  => 'invoice',
+		'sord' => 'supplier_order',
+		'sinv' => 'supplier_invoice',
+		'tic'  => 'ticket',
+		'proj' => 'project',
+		'int'  => 'fichinter',
+		'mem'  => 'member',
+		'act'  => 'actioncomm',
+	);
+
+	/**
+	 * hasRight() arguments (module, permlevel1[, permlevel2]) required to read an object of each
+	 * CATEGORY_TYPES entry - same checks Dolibarr's own API classes use for that object type's own
+	 * get()/index() (see e.g. api_orders.class.php, api_proposals.class.php, api_supplier_orders
+	 * .class.php...), or, for the five types core's own categories API already allows (ticket/
+	 * project/fichinter/member/actioncomm), the exact same check api_categories.class.php's
+	 * getListForObject() uses.
+	 *
+	 * @var array<string,string[]>
+	 */
+	const CATEGORY_TYPE_RIGHTS = array(
+		'ord'  => array('commande', 'lire'),
+		'pro'  => array('propal', 'lire'),
+		'inv'  => array('facture', 'lire'),
+		'sord' => array('fournisseur', 'commande', 'lire'),
+		'sinv' => array('fournisseur', 'facture', 'lire'),
+		'tic'  => array('ticket', 'read'),
+		'proj' => array('projet', 'lire'),
+		'int'  => array('ficheinter', 'lire'),
+		'mem'  => array('adherent', 'lire'),
+		'act'  => array('agenda', 'allactions', 'read'),
+	);
+
+	/**
+	 * List the categories/tags assigned to an object of any CATEGORY_TYPES type.
+	 *
+	 * Dolibarr core's own GET categories/object/{type}/{id} (api_categories.class.php's
+	 * getListForObject()) only allows a specific whitelist of types : product, contact, customer,
+	 * supplier, member, project, knowledgemanagement, actioncomm, user, warehouse, ticket,
+	 * fichinter - order/invoice/propal/supplier_order/supplier_invoice are rejected with a 403
+	 * even though Categorie's own data model (see its MAP_ID property) fully supports categories
+	 * for them too, and Categorie::getListForItem() (the method that whitelist gates) works fine
+	 * for any of them when called directly, which is what this does - the Thunderbird
+	 * doliconnector extension's document cards need tags for quotations/orders/invoices too, not
+	 * just the five types core's endpoint happens to allow.
+	 *
+	 * @param	string	$type	Short type code, see CATEGORY_TYPES
+	 * @param	int		$id		Object id
+	 * @return	array
+	 *
+	 * @throws RestException 400 Bad request
+	 * @throws RestException 403 Not allowed
+	 * @throws RestException 500 System error
+	 *
+	 * @url GET objectcategories/{type}/{id}
+	 */
+	public function getObjectCategories($type, $id)
+	{
+		if (!isset(self::CATEGORY_TYPES[$type])) {
+			throw new RestException(400, 'Unknown or unsupported type');
+		}
+
+		if (!DolibarrApiAccess::$user->hasRight('categorie', 'lire')) {
+			throw new RestException(403);
+		}
+
+		list($module, $permlevel1, $permlevel2) = array_pad(self::CATEGORY_TYPE_RIGHTS[$type], 3, '');
+		if (!DolibarrApiAccess::$user->hasRight($module, $permlevel1, $permlevel2)) {
+			throw new RestException(403);
+		}
+
+		require_once DOL_DOCUMENT_ROOT.'/categories/class/categorie.class.php';
+		$categorie = new Categorie($this->db);
+
+		$result = $categorie->getListForItem((int) $id, self::CATEGORY_TYPES[$type]);
+		if (!is_array($result)) {
+			throw new RestException(500, 'Error fetching categories : '.$categorie->error);
 		}
 
 		return $result;

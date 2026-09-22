@@ -124,6 +124,7 @@ class modCRMClientConnector extends DolibarrModules
 					'propalcard',
 					'ordercard',
 					'ticketcard',
+					'actioncard',
 				),
 			),
 			/* END MODULEBUILDER HOOKSCONTEXTS */
