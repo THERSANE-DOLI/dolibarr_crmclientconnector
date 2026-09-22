@@ -829,6 +829,7 @@ class CRMClientConnector extends DolibarrApi
 					'statusCode' => isset($linkedObject->statut) ? (int) $linkedObject->statut : (isset($linkedObject->status) ? (int) $linkedObject->status : null),
 					'date' => !empty($linkedObject->date) ? (int) $linkedObject->date : (!empty($linkedObject->date_commande) ? (int) $linkedObject->date_commande : (!empty($linkedObject->datep) ? (int) $linkedObject->datep : null)),
 					'totalTtc' => isset($linkedObject->total_ttc) && $linkedObject->total_ttc !== '' ? (float) $linkedObject->total_ttc : null,
+					'socid' => !empty($linkedObject->socid) ? (int) $linkedObject->socid : (!empty($linkedObject->fk_soc) ? (int) $linkedObject->fk_soc : null),
 				);
 			}
 		}
