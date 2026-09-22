@@ -66,24 +66,25 @@ class ActionsCRMClientConnector extends CommonHookActions
 	/**
 	 * Overloading the doActions function : replacing the parent's function with the one below.
 	 *
-	 * On the Propal/Commande create form (context 'propalcard'/'ordercard'), the Thunderbird
-	 * doliconnector extension may open the create page with ?action=create&accountEmail=...&msgId=...
-	 * so the InterfaceCRMClientConnectorTriggers trigger can link the new object to the originating
-	 * mail once created (see PROPAL_CREATE/ORDER_CREATE handling there). Those query params are only
-	 * present on the initial GET though : Dolibarr's create form posts back to action=add without
-	 * echoing them (and neither comm/propal/card.php nor commande/card.php print a hook's resprints
-	 * from inside the create form, so injecting hidden fields there is not an option). They are
-	 * stashed in session here instead, and consumed/cleared by the trigger once the object is created.
+	 * On the Propal/Commande/Ticket create form (context 'propalcard'/'ordercard'/'ticketcard'),
+	 * the Thunderbird doliconnector extension may open the create page with
+	 * ?action=create&accountEmail=...&msgId=... so the InterfaceCRMClientConnectorTriggers trigger
+	 * can link the new object to the originating mail once created (see PROPAL_CREATE/ORDER_CREATE/
+	 * TICKET_CREATE handling there). Those query params are only present on the initial GET though :
+	 * Dolibarr's create form posts back to action=add/create without echoing them (and none of
+	 * comm/propal/card.php, commande/card.php or ticket/card.php print a hook's resprints from
+	 * inside the create form, so injecting hidden fields there is not an option). They are stashed
+	 * in session here instead, and consumed/cleared by the trigger once the object is created.
 	 *
 	 * @param	array<string,mixed>	$parameters	Array of parameters
-	 * @param	CommonObject		$object		The object to process (Propal or Commande here)
+	 * @param	CommonObject		$object		The object to process (Propal, Commande or Ticket here)
 	 * @param	string				$action		'create', 'add', ...
 	 * @param	HookManager			$hookmanager	Hook manager
 	 * @return	int								0 < on error, 0 on success (no action taken), 1 to replace standard code
 	 */
 	public function doActions($parameters, &$object, &$action, $hookmanager)
 	{
-		if (!in_array($parameters['currentcontext'], array('propalcard', 'ordercard'))) {
+		if (!in_array($parameters['currentcontext'], array('propalcard', 'ordercard', 'ticketcard'))) {
 			return 0;
 		}
 

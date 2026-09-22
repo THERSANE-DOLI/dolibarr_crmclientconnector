@@ -18,8 +18,9 @@
 /**
  * \file    core/triggers/interface_50_modCRMClientConnector_CRMClientConnectorTriggers.class.php
  * \ingroup crmclientconnector
- * \brief   Trigger file for crmclientconnector : auto-link a Propal/Commande to the mail it was
- *          created from (Thunderbird doliconnector extension "Create quotation" button).
+ * \brief   Trigger file for crmclientconnector : auto-link a Propal/Commande/Ticket to the mail
+ *          it was created from (Thunderbird doliconnector extension "Create quotation"/"Create
+ *          order"/"Create ticket" buttons).
  */
 
 require_once DOL_DOCUMENT_ROOT.'/core/triggers/dolibarrtriggers.class.php';
@@ -63,6 +64,7 @@ class InterfaceCRMClientConnectorTriggers extends DolibarrTriggers
 		switch ($action) {
 			case 'PROPAL_CREATE':
 			case 'ORDER_CREATE':
+			case 'TICKET_CREATE':
 				return $this->linkObjectToOriginatingMail($object, $user);
 
 			default:
@@ -73,12 +75,13 @@ class InterfaceCRMClientConnectorTriggers extends DolibarrTriggers
 	}
 
 	/**
-	 * Link a just-created Propal/Commande to the EmailLink of the mail it was created from, if
-	 * the create request carried accountEmail/msgId (either directly on this request - a future
-	 * API-driven creation - or stashed in session by ActionsCRMClientConnector::doActions() during
-	 * the create-form GET, since the create form's own POST does not resubmit them).
+	 * Link a just-created Propal/Commande/Ticket to the EmailLink of the mail it was created
+	 * from, if the create request carried accountEmail/msgId (either directly on this request -
+	 * a future API-driven creation - or stashed in session by
+	 * ActionsCRMClientConnector::doActions() during the create-form GET, since the create form's
+	 * own POST does not resubmit them).
 	 *
-	 * @param	CommonObject	$object	The just-created Propal or Commande
+	 * @param	CommonObject	$object	The just-created Propal, Commande or Ticket
 	 * @param	User			$user	User doing the create
 	 * @return	int						0 if nothing to do, >0 on success, <0 on error
 	 */

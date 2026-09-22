@@ -123,6 +123,7 @@ class modCRMClientConnector extends DolibarrModules
 				'data' => array(
 					'propalcard',
 					'ordercard',
+					'ticketcard',
 				),
 			),
 			/* END MODULEBUILDER HOOKSCONTEXTS */
