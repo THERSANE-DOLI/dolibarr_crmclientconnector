@@ -63,6 +63,27 @@ class CRMClientConnector extends DolibarrApi
 		$this->emailusermsg = new EmailUserMsg($this->db);
 	}
 
+	/**
+	 * Return only the id and login of the user currently authenticated via API key, with no
+	 * permission requirement beyond having a valid API key.
+	 *
+	 * Dolibarr core's own GET users/info (api_users.class.php::getInfo()) additionally requires
+	 * user->self->creer, user->user->lire or being admin - rights most Thunderbird doliconnector
+	 * users don't have, which makes that endpoint unusable just to self-identify (e.g. to tell
+	 * whether the current user authored a given note/comment). This module's own endpoint has no
+	 * such requirement : any user with a valid API key is always allowed to know their own id.
+	 *
+	 * @return	array	{"id": int, "login": string}
+	 *
+	 * @url	GET whoami
+	 */
+	public function getWhoAmI()
+	{
+		return array(
+			'id' => (int) DolibarrApiAccess::$user->id,
+			'login' => DolibarrApiAccess::$user->login,
+		);
+	}
 
 	/**
 	 * Get properties of a excluded domains dictionnary
