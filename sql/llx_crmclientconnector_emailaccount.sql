@@ -29,5 +29,17 @@ CREATE TABLE llx_crmclientconnector_emailaccount(
 	last_main_doc varchar(255), 
 	import_key varchar(14), 
 	model_pdf varchar(255), 
-	status integer NOT NULL
+	status integer NOT NULL,
+	fk_user integer,
+	antispam_active smallint DEFAULT 0 NOT NULL,
+	antispam_junk_folders text,
+	antispam_tasks text,
+	antispam_date_last_scan datetime,
+	antispam_last_error text,
+	antispam_auth_mode varchar(16) DEFAULT 'master' NOT NULL,
+	antispam_login varchar(255),
+	antispam_password text,
+	antispam_imap_host varchar(255),
+	antispam_imap_port integer,
+	antispam_imap_encryption varchar(8)
 ) ENGINE=innodb;

@@ -20,3 +20,6 @@
 *.back
 /.editorconfig
 /.gitattributes
+
+# Analysis documents (local only)
+/analyses/

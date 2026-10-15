@@ -46,6 +46,16 @@ function emailaccountPrepareHead($object)
 	$head[$h][2] = 'card';
 	$h++;
 
+	if (getDolGlobalInt('CRMCLIENTCONNECTOR_ANTISPAM_ENABLED')) {
+		$head[$h][0] = dol_buildpath("/crmclientconnector/emailaccount_antispam.php", 1).'?id='.$object->id;
+		$head[$h][1] = $langs->trans("Antispam");
+		if (!empty($object->antispam_active)) {
+			$head[$h][1] .= '<span class="badge badge-status4 marginleftonlyshort">'.$langs->trans("AntispamOn").'</span>';
+		}
+		$head[$h][2] = 'antispam';
+		$h++;
+	}
+
 	if ($showtabofpagecontact) {
 		$head[$h][0] = dol_buildpath("/crmclientconnector/emailaccount_contact.php", 1).'?id='.$object->id;
 		$head[$h][1] = $langs->trans("Contacts");

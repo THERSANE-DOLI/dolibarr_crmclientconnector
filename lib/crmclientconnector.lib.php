@@ -44,6 +44,11 @@ function crmclientconnectorAdminPrepareHead()
 	$head[$h][2] = 'settings';
 	$h++;
 
+	$head[$h][0] = dol_buildpath("/crmclientconnector/admin/antispam.php", 1);
+	$head[$h][1] = $langs->trans("AntispamImap");
+	$head[$h][2] = 'antispam';
+	$h++;
+
 	/*
 	$head[$h][0] = dol_buildpath("/crmclientconnector/admin/myobject_extrafields.php", 1);
 	$head[$h][1] = $langs->trans("ExtraFields");

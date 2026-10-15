@@ -1,5 +1,14 @@
 # CHANGELOG CRMCLIENTCONNECTOR FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
+## 1.2.0
+
+- NEW: Anti-spam IMAP, first part (off by default): setup tab « Anti-spam IMAP » (default IMAP server, optional Dovecot master user with encrypted password, server prerequisites) and « Anti-spam » tab on each email account
+  - connection of each mailbox with the master user, or without master user with its own login and password (stored encrypted) and optionally its own IMAP server
+  - switch to enable the anti-spam of the mailbox (ajax), employee owning the mailbox, junk folders picked from the folders read on the server
+  - tasks enabled one by one: take out of junk the known senders by source (customers, suppliers, their contacts, manual whitelist), mark them « not junk », flag spoofing in junk folders and in the inbox; defaults in the setup (switches), each mailbox follows the setup or forces a task on / off
+  - « Test connection » button: login with the master user, list of the folders with their number of messages
+  - no email is read nor moved yet (automatic rescue and spoofing alerts come in the next versions)
+
 ## 1.1.0
 
 - Add supplier proposal support (type 'spro') to LINKABLE_ELEMENT_TYPES, NUMBERING_MODULE_TYPES, CATEGORY_TYPES and CATEGORY_TYPE_RIGHTS, so the Thunderbird extension's linked-documents, ref-detection and tags features cover supplier proposals like every other document type

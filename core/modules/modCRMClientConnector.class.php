@@ -76,7 +76,7 @@ class modCRMClientConnector extends DolibarrModules
 		$this->editor_squarred_logo = '';					// Must be image filename into the module/img directory followed with @modulename. Example: 'myimage.png@crmclientconnector'
 
 		// Possible values for version are: 'development', 'experimental', 'dolibarr', 'dolibarr_deprecated', 'experimental_deprecated' or a version string like 'x.y.z'
-		$this->version = '1.1.0';
+		$this->version = '1.2.0';
 		// Url to the file with your last numberversion of this module
 		$this->url_last_version = 'https://raw.githubusercontent.com/THERSANE-DOLI/dolibarr_crmclientconnector/refs/heads/main/last-version.txt';
 
@@ -171,6 +171,10 @@ class modCRMClientConnector extends DolibarrModules
 		//                             2 => array('CRMCLIENTCONNECTOR_MYNEWCONST2', 'chaine', 'myvalue', 'This is another constant to add', 0, 'current', 1)
 		// );
 		$this->const = array();
+		// Tasks of the anti-spam IMAP: all on by default (each mailbox can force a task on or off)
+		foreach (array('RESCUE_CUSTOMERS', 'RESCUE_SUPPLIERS', 'RESCUE_CONTACTS', 'RESCUE_MANUAL', 'MARK_NOTJUNK', 'SPOOF_JUNK', 'SPOOF_INBOX') as $task) {
+			$this->const[] = array('CRMCLIENTCONNECTOR_ANTISPAM_TASK_'.$task, 'chaine', '1', 'Anti-spam IMAP task on by default', 0, 'current', 0);
+		}
 
 		// Some keys to add into the overwriting translation tables
 		/*$this->overwrite_translation = array(
