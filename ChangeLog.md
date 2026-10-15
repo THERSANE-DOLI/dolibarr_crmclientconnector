@@ -1,5 +1,22 @@
 # CHANGELOG CRMCLIENTCONNECTOR FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
+## 1.5.3
+
+- FIX: the unique index on the address of the email accounts was declared on a column that does not exist
+  (emailaccount instead of email_account), so it was never created and the same address could be added twice.
+  Created when the module is enabled again (not created if the table already holds the same address twice).
+
+## 1.5.2
+
+- FIX: the pages of the email accounts and of the email notes (list, card, notes, documents, contacts, events)
+  did not check the rights of the module: any user could see, create, change or delete them. The rights
+  « Read / Create/Update / Delete » of these objects are now required.
+
+## 1.5.1
+
+- FIX: anti-spam REST API: a mailbox not in the list of the email accounts answers 404 instead of 403 (a 403 is
+  shown by DoliConnector as a missing Dolibarr right).
+
 ## 1.5.0
 
 - NEW: Anti-spam IMAP, part 4: spoofing alerts

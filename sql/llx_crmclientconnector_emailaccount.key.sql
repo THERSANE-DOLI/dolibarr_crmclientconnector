@@ -14,7 +14,7 @@
 -- along with this program.  If not, see https://www.gnu.org/licenses/.
 
 ALTER TABLE llx_crmclientconnector_emailaccount ADD INDEX idx_crmclientconnector_emailaccount_rowid (rowid);
-ALTER TABLE llx_crmclientconnector_emailaccount ADD UNIQUE INDEX idx_crmclientconnector_emailaccount_emailaccount (emailaccount);
+ALTER TABLE llx_crmclientconnector_emailaccount ADD UNIQUE INDEX uk_crmclientconnector_emailaccount_email_account (email_account);
 ALTER TABLE llx_crmclientconnector_emailaccount ADD INDEX idx_crmclientconnector_emailaccount_fk_project (fk_project);
 ALTER TABLE llx_crmclientconnector_emailaccount ADD INDEX idx_crmclientconnector_emailaccount_status (status);
 

@@ -134,7 +134,7 @@ if ($id > 0 || !empty($ref)) {
 
 // There is several ways to check permission.
 // Set $enablepermissioncheck to 1 to enable a minimum low level of checks
-$enablepermissioncheck = 0;
+$enablepermissioncheck = 1;
 if ($enablepermissioncheck) {
 	$permissiontoread = $user->hasRight('crmclientconnector', 'emailusermsg', 'read');
 	$permissiontoadd = $user->hasRight('crmclientconnector', 'emailusermsg', 'write');
