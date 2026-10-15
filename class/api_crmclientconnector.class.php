@@ -1595,8 +1595,8 @@ class CRMClientConnector extends DolibarrApi
 	 * @param	string	$headers		Raw headers of the email
 	 * @return	array					{from, result (pass|fail|unknown), detail, known, spoof, thirdparty {id, name}|null, contact {id, name}|null}
 	 *
-	 * @throws RestException 403 Not allowed
-	 * @throws RestException 404 Anti-spam disabled
+	 * @throws RestException 403 Not allowed (right to read thirdparties)
+	 * @throws RestException 404 Anti-spam disabled, or mailbox not in the list of the email accounts
 	 *
 	 * @url	POST antispam/check
 	 */
@@ -1639,8 +1639,8 @@ class CRMClientConnector extends DolibarrApi
 	 * @param	string	$msgId			Message-Id of the email (with or without < >)
 	 * @return	array					List of {date, folder, from, detail, thirdparty {id, name}|null, contact {id, name}|null}
 	 *
-	 * @throws RestException 403 Not allowed
-	 * @throws RestException 404 Anti-spam disabled
+	 * @throws RestException 403 Not allowed (right to read thirdparties)
+	 * @throws RestException 404 Anti-spam disabled, or mailbox not in the list of the email accounts
 	 *
 	 * @url	GET antispam/alerts
 	 */
@@ -1697,12 +1697,13 @@ class CRMClientConnector extends DolibarrApi
 			throw new RestException(403);
 		}
 		$obj = $this->db->getRow("SELECT rowid FROM ".$this->db->prefix()."crmclientconnector_emailaccount WHERE email_account = '".$this->db->escape(trim((string) $accountEmail))."' AND status = 1");
+		// 404 and not 403: for the client, a 403 means a missing Dolibarr right (DoliConnector shows it as such)
 		if (!$obj) {
-			throw new RestException(403, 'Email account not allowed');
+			throw new RestException(404, 'Email account not in the list of the email accounts');
 		}
 		$account = new EmailAccount($this->db);
 		if ($account->fetch((int) $obj->rowid) <= 0) {
-			throw new RestException(403, 'Email account not allowed');
+			throw new RestException(404, 'Email account not in the list of the email accounts');
 		}
 		return $account;
 	}
