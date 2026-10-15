@@ -76,7 +76,7 @@ class modCRMClientConnector extends DolibarrModules
 		$this->editor_squarred_logo = '';					// Must be image filename into the module/img directory followed with @modulename. Example: 'myimage.png@crmclientconnector'
 
 		// Possible values for version are: 'development', 'experimental', 'dolibarr', 'dolibarr_deprecated', 'experimental_deprecated' or a version string like 'x.y.z'
-		$this->version = '1.3.0';
+		$this->version = '1.4.0';
 		// Url to the file with your last numberversion of this module
 		$this->url_last_version = 'https://raw.githubusercontent.com/THERSANE-DOLI/dolibarr_crmclientconnector/refs/heads/main/last-version.txt';
 
@@ -399,6 +399,11 @@ class modCRMClientConnector extends DolibarrModules
 		$this->rights[$r][1] = 'Read the anti-spam log of all the mailboxes';
 		$this->rights[$r][4] = 'antispamlog';
 		$this->rights[$r][5] = 'readall';
+		$r++;
+		$this->rights[$r][0] = $this->numero . sprintf('%02d', (6 * 10) + 0 + 1);
+		$this->rights[$r][1] = 'Manage the manual whitelist and blacklist of the anti-spam';
+		$this->rights[$r][4] = 'antispamrule';
+		$this->rights[$r][5] = 'write';
 
 
 		/* END MODULEBUILDER PERMISSIONS */
@@ -468,6 +473,22 @@ class modCRMClientConnector extends DolibarrModules
 			'position' => 1000 + $r,
 			'enabled' => 'isModEnabled("crmclientconnector") && getDolGlobalInt("CRMCLIENTCONNECTOR_ANTISPAM_ENABLED")',
 			'perms' => '$user->hasRight("crmclientconnector", "antispamlog", "read") || $user->hasRight("crmclientconnector", "antispamlog", "readall")',
+			'target' => '',
+			'user' => 2,
+		);
+
+
+				$this->menu[$r++] = array(
+			'fk_menu' => 'fk_mainmenu=tools,fk_leftmenu=emailaccount',
+			'type' => 'left',
+			'titre' => 'AntispamRules',
+			'mainmenu' => 'tools',
+			'leftmenu' => 'crmclientconnector_antispam_rules',
+			'url' => '/crmclientconnector/antispam_rules.php',
+			'langs' => 'crmclientconnector@crmclientconnector',
+			'position' => 1000 + $r,
+			'enabled' => 'isModEnabled("crmclientconnector") && getDolGlobalInt("CRMCLIENTCONNECTOR_ANTISPAM_ENABLED")',
+			'perms' => '$user->hasRight("crmclientconnector", "antispamrule", "write")',
 			'target' => '',
 			'user' => 2,
 		);

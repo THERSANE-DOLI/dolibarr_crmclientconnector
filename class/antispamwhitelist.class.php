@@ -22,13 +22,15 @@
  */
 
 dol_include_once('/crmclientconnector/class/antispamimap.class.php');
+dol_include_once('/crmclientconnector/class/antispamrule.class.php');
 
 /**
  * Known senders of the anti-spam, read once per scan.
  *
  * Exact addresses only (no domain): email of the active customer (client 1 or 3, prospects only are excluded) or
- * supplier thirdparties, and of the active contacts of these thirdparties. Which ones are used for a mailbox depends
- * on its tasks rescue_customers, rescue_suppliers and rescue_contacts.
+ * supplier thirdparties, and of the active contacts of these thirdparties, plus the manual whitelist. Which ones are
+ * used for a mailbox depends on its tasks rescue_customers, rescue_suppliers, rescue_contacts and rescue_manual. An
+ * address of the manual blacklist is never a known sender.
  */
 class CrmClientConnectorAntispamWhitelist
 {
@@ -46,6 +48,11 @@ class CrmClientConnectorAntispamWhitelist
 	 * @var array<string,array<int,array{socid:int,contactid:int,customer:bool,supplier:bool}>> Address => entries
 	 */
 	protected $senders = array();
+
+	/**
+	 * @var array<string,array<int,array{type:string,accountId:int}>> Address => manual rules (accountId 0 = all mailboxes)
+	 */
+	protected $rules = array();
 
 	/**
 	 * @var bool
@@ -102,6 +109,17 @@ class CrmClientConnectorAntispamWhitelist
 		}
 		$this->db->free($resql);
 
+		$this->rules = array();
+		$ruleStatic = new CrmClientConnectorAntispamRule($this->db);
+		$rules = $ruleStatic->fetchAll();
+		if ($rules === null) {
+			$this->error = $ruleStatic->error;
+			return -1;
+		}
+		foreach ($rules as $rule) {
+			$this->rules[$rule['email']][] = array('type' => $rule['type'], 'accountId' => $rule['fk_emailaccount']);
+		}
+
 		$this->loaded = true;
 		return count($this->senders);
 	}
@@ -142,8 +160,15 @@ class CrmClientConnectorAntispamWhitelist
 	public function find($email, $account)
 	{
 		$email = strtolower(trim($email));
-		if (!isset($this->senders[$email])) {
+		if ($this->hasRule($email, $account, CrmClientConnectorAntispamRule::TYPE_BLACK)) {
 			return null;
+		}
+		$manual = null;
+		if (CrmClientConnectorAntispamImap::isTaskEnabled($account, 'rescue_manual') && $this->hasRule($email, $account, CrmClientConnectorAntispamRule::TYPE_WHITE)) {
+			$manual = array('socid' => 0, 'contactid' => 0, 'customer' => false, 'supplier' => false);
+		}
+		if (!isset($this->senders[$email])) {
+			return $manual;
 		}
 
 		$customers = CrmClientConnectorAntispamImap::isTaskEnabled($account, 'rescue_customers');
@@ -165,7 +190,49 @@ class CrmClientConnectorAntispamWhitelist
 				$found = $entry;
 			}
 		}
-		return $found;
+		return $found !== null ? $found : $manual;
+	}
+
+	/**
+	 * Customer, supplier or contact of Dolibarr with an address, whatever the tasks of the mailbox
+	 *
+	 * @param	string	$email	Address
+	 * @return	array{socid:int,contactid:int,customer:bool,supplier:bool}|null	The thirdparty is preferred to a contact
+	 */
+	public function getDolibarrSender($email)
+	{
+		$email = strtolower(trim($email));
+		if (empty($this->senders[$email])) {
+			return null;
+		}
+		foreach ($this->senders[$email] as $entry) {
+			if ($entry['contactid'] == 0) {
+				return $entry;
+			}
+		}
+		return $this->senders[$email][0];
+	}
+
+	/**
+	 * Has an address a manual rule for a mailbox (rule of this mailbox or of all the mailboxes)
+	 *
+	 * @param	string			$email		Address
+	 * @param	EmailAccount	$account	Mailbox
+	 * @param	string			$type		CrmClientConnectorAntispamRule::TYPE_*
+	 * @return	bool
+	 */
+	public function hasRule($email, $account, $type)
+	{
+		$email = strtolower(trim($email));
+		if (!isset($this->rules[$email])) {
+			return false;
+		}
+		foreach ($this->rules[$email] as $rule) {
+			if ($rule['type'] === $type && ($rule['accountId'] == 0 || $rule['accountId'] == $account->id)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -176,6 +243,8 @@ class CrmClientConnectorAntispamWhitelist
 	 */
 	public static function isUsedBy($account)
 	{
-		return (CrmClientConnectorAntispamImap::isTaskEnabled($account, 'rescue_customers') || CrmClientConnectorAntispamImap::isTaskEnabled($account, 'rescue_suppliers'));
+		return (CrmClientConnectorAntispamImap::isTaskEnabled($account, 'rescue_customers')
+			|| CrmClientConnectorAntispamImap::isTaskEnabled($account, 'rescue_suppliers')
+			|| CrmClientConnectorAntispamImap::isTaskEnabled($account, 'rescue_manual'));
 	}
 }

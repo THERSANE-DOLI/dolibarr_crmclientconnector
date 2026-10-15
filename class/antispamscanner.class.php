@@ -39,6 +39,7 @@ class CrmClientConnectorAntispamScanner
 {
 	const ACTION_RESCUED = 'rescued';
 	const ACTION_NOT_RESCUED = 'notrescued';
+	const ACTION_BLOCKED = 'blocked';
 
 	/**
 	 * @var DoliDB Database handler
@@ -119,11 +120,16 @@ class CrmClientConnectorAntispamScanner
 				$nbErrors++;
 				$lines[] = $account->email_account.': '.$this->error;
 			} else {
-				$lines[] = $account->email_account.': '.$langs->transnoentities('AntispamScanSummary', $stats['read'], $stats['rescued'], $stats['notrescued']);
+				$lines[] = $account->email_account.': '.$langs->transnoentities('AntispamScanSummary', $stats['read'], $stats['rescued'], $stats['notrescued'], $stats['blocked']);
 			}
 		}
 
 		$this->output = empty($lines) ? $langs->transnoentities('AntispamScanNoMailbox') : implode("\n", $lines);
+
+		$purged = $this->purgeLog();
+		if ($purged > 0) {
+			$this->output .= "\n".$langs->transnoentities('AntispamLogPurged', $purged);
+		}
 
 		return $nbErrors > 0 ? 1 : 0;
 	}
@@ -132,14 +138,14 @@ class CrmClientConnectorAntispamScanner
 	 * Scan the junk folders of a mailbox
 	 *
 	 * @param	EmailAccount	$account	Mailbox
-	 * @return	array{read:int,rescued:int,notrescued:int}|null		Counters, null on error (see $this->error)
+	 * @return	array{read:int,rescued:int,notrescued:int,blocked:int}|null		Counters, null on error (see $this->error)
 	 */
 	public function scanAccount($account)
 	{
 		global $langs;
 
 		$this->error = '';
-		$stats = array('read' => 0, 'rescued' => 0, 'notrescued' => 0);
+		$stats = array('read' => 0, 'rescued' => 0, 'notrescued' => 0, 'blocked' => 0);
 
 		$folders = array_values(array_filter($account->getAntispamJunkFolders(), function ($folder) {
 			return strtoupper($folder) !== 'INBOX';
@@ -202,13 +208,13 @@ class CrmClientConnectorAntispamScanner
 	 * @param	\Webklex\PHPIMAP\Client	$client		Connected client
 	 * @param	EmailAccount			$account	Mailbox
 	 * @param	string					$folder		IMAP path of the junk folder
-	 * @return	array{read:int,rescued:int,notrescued:int}|null	Null on error (see $this->error)
+	 * @return	array{read:int,rescued:int,notrescued:int,blocked:int}|null	Null on error (see $this->error)
 	 */
 	protected function scanJunkFolder($client, $account, $folder)
 	{
 		global $langs;
 
-		$stats = array('read' => 0, 'rescued' => 0, 'notrescued' => 0);
+		$stats = array('read' => 0, 'rescued' => 0, 'notrescued' => 0, 'blocked' => 0);
 		$connection = $client->getConnection();
 
 		$status = $connection->selectFolder($folder);
@@ -251,7 +257,20 @@ class CrmClientConnectorAntispamScanner
 
 				$headers = CrmClientConnectorAntispamAuth::parseHeaders($headersByUid[$uid]);
 				$fromAddress = CrmClientConnectorAntispamAuth::extractAddress(CrmClientConnectorAntispamAuth::getHeader($headers, 'from'));
-				$sender = $fromAddress !== '' ? $this->whitelist->find($fromAddress, $account) : null;
+				if ($fromAddress === '') {
+					continue;
+				}
+				// Blacklisted customer or supplier: left in junk, written in the log so that nobody wonders why
+				// (a blacklisted unknown address is not logged, junk folders are full of them)
+				if ($this->whitelist->hasRule($fromAddress, $account, CrmClientConnectorAntispamRule::TYPE_BLACK)) {
+					$dolibarrSender = $this->whitelist->getDolibarrSender($fromAddress);
+					if ($dolibarrSender) {
+						$stats['blocked']++;
+						$this->addLog($account, $folder, $headers, $fromAddress, $dolibarrSender, self::ACTION_BLOCKED, array('result' => '', 'detail' => ''));
+					}
+					continue;
+				}
+				$sender = $this->whitelist->find($fromAddress, $account);
 				if (!$sender) {
 					continue;
 				}
@@ -303,6 +322,29 @@ class CrmClientConnectorAntispamScanner
 		$connection->store(array('\Deleted'), $uid, null, '+', true, true);
 		$connection->expunge();
 		return true;
+	}
+
+	/**
+	 * Delete the lines of the log older than the retention of the setup (0 = keep everything)
+	 *
+	 * @return	int		Number of lines deleted, -1 on error
+	 */
+	public function purgeLog()
+	{
+		global $conf;
+
+		$days = getDolGlobalInt('CRMCLIENTCONNECTOR_ANTISPAM_LOG_RETENTION_DAYS', 90);
+		if ($days <= 0) {
+			return 0;
+		}
+		$sql = "DELETE FROM ".$this->db->prefix()."crmclientconnector_antispam_log";
+		$sql .= " WHERE entity = ".((int) $conf->entity)." AND date_log < '".$this->db->idate(dol_now() - $days * 86400)."'";
+		$resql = $this->db->query($sql);
+		if (!$resql) {
+			dol_syslog(__METHOD__.' '.$this->db->lasterror(), LOG_ERR);
+			return -1;
+		}
+		return (int) $this->db->affected_rows($resql);
 	}
 
 	/**

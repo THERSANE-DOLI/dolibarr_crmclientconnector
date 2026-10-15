@@ -143,6 +143,15 @@ if ($action == 'update') {
 	exit;
 }
 
+if ($action == 'setretention') {
+	$days = max(0, (int) GETPOST('CRMCLIENTCONNECTOR_ANTISPAM_LOG_RETENTION_DAYS', 'int'));
+	if (dolibarr_set_const($db, 'CRMCLIENTCONNECTOR_ANTISPAM_LOG_RETENTION_DAYS', (string) $days, 'chaine', 0, '', $conf->entity) > 0) {
+		setEventMessages($langs->trans('SetupSaved'), null, 'mesgs');
+	}
+	header('Location: '.$_SERVER['PHP_SELF']);
+	exit;
+}
+
 if ($action == 'confirm_deletepassword' && GETPOST('confirm', 'alpha') == 'yes') {
 	dolibarr_del_const($db, 'CRMCLIENTCONNECTOR_ANTISPAM_MASTER_PASSWORD', $conf->entity);
 	setEventMessages($langs->trans('AntispamPasswordDeleted'), null, 'mesgs');
@@ -178,6 +187,14 @@ print '<table class="noborder centpercent">';
 print '<tr class="liste_titre"><td>'.$langs->trans('Parameter').'</td><td></td></tr>';
 print '<tr class="oddeven"><td>'.$langs->trans('AntispamEnable').'</td><td class="right">';
 print ajax_constantonoff('CRMCLIENTCONNECTOR_ANTISPAM_ENABLED');
+print '</td></tr>';
+print '<tr class="oddeven"><td>'.$form->textwithpicto($langs->trans('AntispamLogRetention'), $langs->trans('AntispamLogRetentionHelp')).'</td><td class="right">';
+print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'" class="inline-block">';
+print '<input type="hidden" name="token" value="'.newToken().'">';
+print '<input type="hidden" name="action" value="setretention">';
+print '<input type="number" class="flat width75" min="0" name="CRMCLIENTCONNECTOR_ANTISPAM_LOG_RETENTION_DAYS" value="'.getDolGlobalInt('CRMCLIENTCONNECTOR_ANTISPAM_LOG_RETENTION_DAYS', 90).'"> '.$langs->trans('days');
+print ' <input type="submit" class="button small smallpaddingimp" value="'.$langs->trans('Save').'">';
+print '</form>';
 print '</td></tr>';
 print '</table>';
 print '</div>';

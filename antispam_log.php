@@ -95,7 +95,9 @@ if (GETPOST('button_removefilter', 'alpha') || GETPOST('button_removefilter.x', 
 $actions = array(
 	CrmClientConnectorAntispamScanner::ACTION_RESCUED => $langs->trans('AntispamActionRescued'),
 	CrmClientConnectorAntispamScanner::ACTION_NOT_RESCUED => $langs->trans('AntispamActionNotRescued'),
+	CrmClientConnectorAntispamScanner::ACTION_BLOCKED => $langs->trans('AntispamActionBlocked'),
 );
+$permissionRules = $user->admin || $user->hasRight('crmclientconnector', 'antispamrule', 'write');
 
 // Mailboxes the user can see: all, or the ones of which he is the employee
 $accounts = array();
@@ -243,12 +245,28 @@ while ($i < min($num, $limit)) {
 	print '<td class="nowraponall">';
 	if ($obj->action == CrmClientConnectorAntispamScanner::ACTION_RESCUED) {
 		print '<span class="badge badge-status4">'.$langs->trans('AntispamActionRescued').'</span>';
+	} elseif ($obj->action == CrmClientConnectorAntispamScanner::ACTION_BLOCKED) {
+		print '<span class="badge badge-status8">'.$langs->trans('AntispamActionBlocked').'</span>';
 	} else {
 		print '<span class="badge badge-status1">'.$langs->trans('AntispamActionNotRescued').'</span>';
 	}
+	// Quick add of the sender to the manual lists (form prefilled, nothing saved before confirmation)
+	if ($permissionRules) {
+		$ruleUrl = dol_buildpath('/crmclientconnector/antispam_rules.php', 1).'?email='.urlencode($obj->from_email).'&fk_emailaccount='.((int) $obj->fk_emailaccount);
+		if ($obj->action != CrmClientConnectorAntispamScanner::ACTION_RESCUED) {
+			print ' <a class="marginleftonlyshort" href="'.$ruleUrl.'&type=white" title="'.dol_escape_htmltag($langs->trans('AntispamAddToWhitelist')).'">'.img_picto('', 'fa-thumbs-up', 'class="opacitymedium"').'</a>';
+		}
+		if ($obj->action != CrmClientConnectorAntispamScanner::ACTION_BLOCKED) {
+			print ' <a class="marginleftonlyshort" href="'.$ruleUrl.'&type=black" title="'.dol_escape_htmltag($langs->trans('AntispamAddToBlacklist')).'">'.img_picto('', 'fa-thumbs-down', 'class="opacitymedium"').'</a>';
+		}
+	}
 	print '</td>';
 
-	$authLabel = $langs->trans($obj->auth_result == 'pass' ? 'AntispamAuthPass' : ($obj->auth_result == 'fail' ? 'AntispamAuthFail' : 'AntispamAuthUnknown'));
+	if ($obj->action == CrmClientConnectorAntispamScanner::ACTION_BLOCKED) {
+		$authLabel = $langs->trans('AntispamAuthNotChecked');
+	} else {
+		$authLabel = $langs->trans($obj->auth_result == 'pass' ? 'AntispamAuthPass' : ($obj->auth_result == 'fail' ? 'AntispamAuthFail' : 'AntispamAuthUnknown'));
+	}
 	print '<td class="tdoverflowmax300" title="'.dol_escape_htmltag($obj->auth_detail).'">'.dol_escape_htmltag($authLabel).($obj->auth_detail ? ' <span class="opacitymedium small">'.dol_escape_htmltag($obj->auth_detail).'</span>' : '').'</td>';
 	print '</tr>';
 }

@@ -1,5 +1,14 @@
 # CHANGELOG CRMCLIENTCONNECTOR FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
+## 1.4.0
+
+- NEW: Anti-spam IMAP, part 3: manual whitelist and blacklist, purge of the log
+  - page « Liste blanche / noire anti-spam » (new right): exact addresses, for all the mailboxes or one mailbox, with a note
+  - whitelist: address treated as a known sender (task « Manual whitelist »), still only when the sender is authenticated
+  - blacklist: never taken out of junk, even for a customer or a supplier (written in the log as « Liste noire » for known senders only)
+  - quick add of a sender from a line of the log (form prefilled, saved after confirmation)
+  - log lines older than the retention of the setup (90 days by default, 0 to keep everything) deleted by the scheduled job
+
 ## 1.3.0
 
 - NEW: Anti-spam IMAP, part 2: emails of known senders taken out of junk
