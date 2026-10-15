@@ -63,6 +63,7 @@ if (!$res) {
 
 dol_include_once('/crmclientconnector/class/emailaccount.class.php');
 dol_include_once('/crmclientconnector/class/antispamimap.class.php');
+dol_include_once('/crmclientconnector/class/antispamscanner.class.php');
 dol_include_once('/crmclientconnector/lib/crmclientconnector_email_account.lib.php');
 require_once DOL_DOCUMENT_ROOT.'/core/lib/security.lib.php';
 
@@ -164,6 +165,19 @@ if (empty($reshook)) {
 		}
 	}
 
+	if ($action == 'scan' && $permissiontoadd) {
+		// Same scan as the scheduled job, for this mailbox only (even if its anti-spam is off, to try it)
+		$scanner = new CrmClientConnectorAntispamScanner($db);
+		$stats = $scanner->scanAccount($object);
+		if ($stats === null) {
+			setEventMessages($scanner->error, null, 'errors');
+		} else {
+			setEventMessages($langs->trans('AntispamScanSummary', $stats['read'], $stats['rescued'], $stats['notrescued']), null, 'mesgs');
+		}
+		header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id);
+		exit;
+	}
+
 	if ($action == 'edit_antispam' && $permissiontoadd) {
 		// Folders read on the server for the pick list, the form stays usable without them
 		$client = $antispamImap->connect($object);
@@ -200,6 +214,14 @@ print '<div class="underbanner clearboth"></div>';
 $configurationError = CrmClientConnectorAntispamImap::getConfigurationError($object);
 if ($configurationError !== '' && $action != 'edit_antispam') {
 	$msg = dol_escape_htmltag($configurationError);
+	if ($user->admin) {
+		$msg .= ' <a href="'.dol_buildpath('/crmclientconnector/admin/antispam.php', 1).'">'.$langs->trans('AntispamGoToSetup').'</a>';
+	}
+	print '<div class="warning">'.$msg.'</div>';
+}
+
+if ($action != 'edit_antispam' && empty(CrmClientConnectorAntispamScanner::getAuthservIds())) {
+	$msg = $langs->trans('AntispamWarningNoAuthservIds');
 	if ($user->admin) {
 		$msg .= ' <a href="'.dol_buildpath('/crmclientconnector/admin/antispam.php', 1).'">'.$langs->trans('AntispamGoToSetup').'</a>';
 	}
@@ -369,6 +391,18 @@ if ($action == 'edit_antispam' && $permissiontoadd) {
 	print $object->antispam_date_last_scan ? dol_print_date($object->antispam_date_last_scan, 'dayhour', 'tzuserrel') : '<span class="opacitymedium">'.$langs->trans('AntispamNeverScanned').'</span>';
 	print '</td></tr>';
 
+	if ($user->admin || $user->hasRight('crmclientconnector', 'antispamlog', 'readall') || ($user->hasRight('crmclientconnector', 'antispamlog', 'read') && $object->fk_user == $user->id)) {
+		$nbLog = 0;
+		$resql = $db->query("SELECT COUNT(*) as nb FROM ".$db->prefix()."crmclientconnector_antispam_log WHERE fk_emailaccount = ".((int) $object->id));
+		if ($resql && ($obj = $db->fetch_object($resql))) {
+			$nbLog = (int) $obj->nb;
+		}
+		print '<tr><td>'.$langs->trans('AntispamLog').'</td><td>';
+		print '<a href="'.dol_buildpath('/crmclientconnector/antispam_log.php', 1).'?search_account='.((int) $object->id).'">'.$langs->trans('AntispamSeeLog').'</a>';
+		print ' <span class="badge marginleftonlyshort">'.$nbLog.'</span>';
+		print '</td></tr>';
+	}
+
 	if (!empty($object->antispam_last_error)) {
 		print '<tr><td>'.$langs->trans('AntispamLastError').'</td><td><span class="error">'.dol_escape_htmltag($object->antispam_last_error).'</span></td></tr>';
 	}
@@ -401,6 +435,7 @@ print dol_get_fiche_end();
 if ($action != 'edit_antispam') {
 	print '<div class="tabsAction">';
 	print dolGetButtonAction('', $langs->trans('Modify'), 'default', $_SERVER['PHP_SELF'].'?id='.$object->id.'&action=edit_antispam&token='.newToken(), '', $permissiontoadd);
+	print dolGetButtonAction('', $langs->trans('AntispamScanNow'), 'default', $_SERVER['PHP_SELF'].'?id='.$object->id.'&action=scan&token='.newToken(), '', $permissiontoadd && $configurationError === '');
 	print dolGetButtonAction('', $langs->trans('AntispamTestConnection'), 'default', $_SERVER['PHP_SELF'].'?id='.$object->id.'&action=test&token='.newToken(), '', $permissiontoadd && $configurationError === '');
 	print '</div>';
 }

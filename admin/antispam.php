@@ -90,6 +90,8 @@ if ($action == 'update') {
 	$validateCert = GETPOST('CRMCLIENTCONNECTOR_ANTISPAM_IMAP_VALIDATE_CERT', 'int') ? 1 : 0;
 	$masterUser = trim(GETPOST('CRMCLIENTCONNECTOR_ANTISPAM_MASTER_USER', 'alphanohtml'));
 	$separator = trim(GETPOST('CRMCLIENTCONNECTOR_ANTISPAM_MASTER_SEPARATOR', 'alphanohtml'));
+	// Ids of the receiving servers, comma separated, lower case
+	$authservIds = implode(', ', array_filter(array_map('trim', explode(',', strtolower(GETPOST('CRMCLIENTCONNECTOR_ANTISPAM_AUTHSERV_IDS', 'alphanohtml')))), 'strlen'));
 	// 'none': a password may contain any character ('password' filter does not exist in Dolibarr 18)
 	$password = GETPOST('CRMCLIENTCONNECTOR_ANTISPAM_MASTER_PASSWORD', 'none');
 
@@ -116,6 +118,7 @@ if ($action == 'update') {
 			'CRMCLIENTCONNECTOR_ANTISPAM_IMAP_VALIDATE_CERT' => (string) $validateCert,
 			'CRMCLIENTCONNECTOR_ANTISPAM_MASTER_USER' => $masterUser,
 			'CRMCLIENTCONNECTOR_ANTISPAM_MASTER_SEPARATOR' => $separator,
+			'CRMCLIENTCONNECTOR_ANTISPAM_AUTHSERV_IDS' => $authservIds,
 		);
 		// Empty password field = keep the current one (it is never sent back to the browser)
 		if ($password !== '') {
@@ -178,6 +181,23 @@ print ajax_constantonoff('CRMCLIENTCONNECTOR_ANTISPAM_ENABLED');
 print '</td></tr>';
 print '</table>';
 print '</div>';
+
+// Scheduled job: created disabled with the module, to enable once the feature is set up
+if (getDolGlobalInt('CRMCLIENTCONNECTOR_ANTISPAM_ENABLED')) {
+	$cronStatus = -1;
+	$cronId = 0;
+	$resql = $db->query("SELECT rowid, status FROM ".$db->prefix()."cronjob WHERE classesname = '/crmclientconnector/class/antispamscanner.class.php' AND methodename = 'runScheduledScan' AND entity IN (0, ".((int) $conf->entity).")");
+	if ($resql && ($obj = $db->fetch_object($resql))) {
+		$cronStatus = (int) $obj->status;
+		$cronId = (int) $obj->rowid;
+	}
+	$cronUrl = $cronId > 0 ? DOL_URL_ROOT.'/cron/card.php?id='.$cronId : DOL_URL_ROOT.'/cron/list.php';
+	if ($cronStatus != 1) {
+		print '<div class="warning">'.$langs->trans($cronStatus == -1 ? 'AntispamCronMissing' : 'AntispamCronDisabled').' <a href="'.$cronUrl.'">'.$langs->trans('AntispamCronOpen').'</a></div>';
+	} else {
+		print '<div class="opacitymedium margintoponly">'.img_picto('', 'tick', 'class="pictofixedwidth"').$langs->trans('AntispamCronEnabled').' <a href="'.$cronUrl.'">'.$langs->trans('AntispamCronOpen').'</a></div>';
+	}
+}
 print '<br>';
 
 // Tasks: default of every mailbox, each mailbox can force a task on or off in its "Anti-spam" tab
@@ -233,6 +253,10 @@ print '</td></tr>';
 
 print '<tr class="oddeven"><td>'.$form->textwithpicto($langs->trans('AntispamImapValidateCert'), $langs->trans('AntispamImapValidateCertHelp')).'</td><td>';
 print $form->selectyesno('CRMCLIENTCONNECTOR_ANTISPAM_IMAP_VALIDATE_CERT', getDolGlobalInt('CRMCLIENTCONNECTOR_ANTISPAM_IMAP_VALIDATE_CERT', 1), 1);
+print '</td></tr>';
+
+print '<tr class="oddeven"><td class="fieldrequired">'.$form->textwithpicto($langs->trans('AntispamAuthservIds'), $langs->trans('AntispamAuthservIdsHelp')).'</td><td>';
+print '<input type="text" class="minwidth300" name="CRMCLIENTCONNECTOR_ANTISPAM_AUTHSERV_IDS" value="'.dol_escape_htmltag(getDolGlobalString('CRMCLIENTCONNECTOR_ANTISPAM_AUTHSERV_IDS')).'" placeholder="mail.example.com">';
 print '</td></tr>';
 
 print '<tr class="liste_titre"><td colspan="2">'.$form->textwithpicto($langs->trans('AntispamMasterSection'), $langs->trans('AntispamMasterSectionHelp')).'</td></tr>';
