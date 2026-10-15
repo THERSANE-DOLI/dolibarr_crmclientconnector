@@ -1,5 +1,12 @@
 # CHANGELOG CRMCLIENTCONNECTOR FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
+## 1.5.0
+
+- NEW: Anti-spam IMAP, part 4: spoofing alerts
+  - an email with the address of a known customer, supplier, contact or of the whitelist, whose authentication by our receiving server fails, gets the IMAP keyword doliconnector_spoof (never moved), in the junk folders (task « In the junk folders ») and in the inbox (task « In the inbox », the inbox is read too)
+  - written in the log as « Usurpation possible »
+  - REST API for the DoliConnector Thunderbird extension: POST crmclientconnector/antispam/check (check of the headers of an email when it is opened) and GET crmclientconnector/antispam/alerts (alerts written by the scan for a Message-Id), right to read thirdparties and mailbox in the list of the email accounts needed
+
 ## 1.4.0
 
 - NEW: Anti-spam IMAP, part 3: manual whitelist and blacklist, purge of the log

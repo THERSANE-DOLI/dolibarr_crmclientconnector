@@ -22,6 +22,10 @@ dol_include_once('/crmclientconnector/class/emailaccount.class.php');
 dol_include_once('/crmclientconnector/class/emaillink.class.php');
 dol_include_once('/crmclientconnector/class/emailusermsg.class.php');
 dol_include_once('/crmclientconnector/lib/crmclientconnector_email_link.lib.php');
+dol_include_once('/crmclientconnector/class/antispamimap.class.php');
+dol_include_once('/crmclientconnector/class/antispamauth.class.php');
+dol_include_once('/crmclientconnector/class/antispamwhitelist.class.php');
+dol_include_once('/crmclientconnector/class/antispamscanner.class.php');
 
 
 
@@ -1578,6 +1582,159 @@ class CRMClientConnector extends DolibarrApi
 		}
 
 		return $this->_cleanObjectDatas($this->emaillink);
+	}
+
+	/**
+	 * Anti-spam: check the sender of an email (alert of the DoliConnector Thunderbird extension when the email is opened)
+	 *
+	 * The headers are the raw headers of the email. The sender is "spoofing" when its address is the one of a known
+	 * customer, supplier, contact or of the manual whitelist, but the authentication added by our receiving server fails
+	 * (same rule as the scheduled scan of the anti-spam).
+	 *
+	 * @param	string	$accountEmail	Email address of the mailbox owning the message
+	 * @param	string	$headers		Raw headers of the email
+	 * @return	array					{from, result (pass|fail|unknown), detail, known, spoof, thirdparty {id, name}|null, contact {id, name}|null}
+	 *
+	 * @throws RestException 403 Not allowed
+	 * @throws RestException 404 Anti-spam disabled
+	 *
+	 * @url	POST antispam/check
+	 */
+	public function postAntispamCheck($accountEmail, $headers)
+	{
+		$account = $this->_fetchAntispamAccount($accountEmail);
+
+		$parsedHeaders = CrmClientConnectorAntispamAuth::parseHeaders((string) $headers);
+		$fromAddress = CrmClientConnectorAntispamAuth::extractAddress(CrmClientConnectorAntispamAuth::getHeader($parsedHeaders, 'from'));
+
+		$answer = array('from' => $fromAddress, 'result' => CrmClientConnectorAntispamAuth::RESULT_UNKNOWN, 'detail' => '', 'known' => false, 'spoof' => false, 'thirdparty' => null, 'contact' => null);
+		if ($fromAddress === '') {
+			return $answer;
+		}
+
+		$whitelist = new CrmClientConnectorAntispamWhitelist($this->db);
+		if ($whitelist->load($fromAddress) < 0) {
+			throw new RestException(500, $whitelist->error);
+		}
+		$sender = $whitelist->getSpoofSender($fromAddress, $account);
+
+		$auth = CrmClientConnectorAntispamAuth::check($parsedHeaders, $fromAddress, CrmClientConnectorAntispamScanner::getAuthservIds());
+		$answer['result'] = $auth['result'];
+		$answer['detail'] = $auth['detail'];
+		$answer['known'] = $sender !== null;
+		$answer['spoof'] = $sender !== null && $auth['result'] === CrmClientConnectorAntispamAuth::RESULT_FAIL
+			&& (CrmClientConnectorAntispamImap::isTaskEnabled($account, 'spoof_inbox') || CrmClientConnectorAntispamImap::isTaskEnabled($account, 'spoof_junk'));
+		if ($sender) {
+			$answer['thirdparty'] = $this->_antispamThirdparty($sender['socid']);
+			$answer['contact'] = $this->_antispamContact($sender['contactid']);
+		}
+
+		return $answer;
+	}
+
+	/**
+	 * Anti-spam: spoofing alerts of an email, written by the scheduled scan of the anti-spam
+	 *
+	 * @param	string	$accountEmail	Email address of the mailbox owning the message
+	 * @param	string	$msgId			Message-Id of the email (with or without < >)
+	 * @return	array					List of {date, folder, from, detail, thirdparty {id, name}|null, contact {id, name}|null}
+	 *
+	 * @throws RestException 403 Not allowed
+	 * @throws RestException 404 Anti-spam disabled
+	 *
+	 * @url	GET antispam/alerts
+	 */
+	public function getAntispamAlerts($accountEmail, $msgId)
+	{
+		$account = $this->_fetchAntispamAccount($accountEmail);
+
+		$msgId = trim((string) $msgId, " <>");
+		if ($msgId === '') {
+			return array();
+		}
+
+		$sql = "SELECT date_log, folder, from_email, auth_detail, fk_soc, fk_socpeople";
+		$sql .= " FROM ".$this->db->prefix()."crmclientconnector_antispam_log";
+		$sql .= " WHERE fk_emailaccount = ".((int) $account->id);
+		$sql .= " AND message_id = '".$this->db->escape($msgId)."'";
+		$sql .= " AND action = '".$this->db->escape(CrmClientConnectorAntispamScanner::ACTION_SPOOF)."'";
+		$sql .= " ORDER BY date_log DESC";
+		$resql = $this->db->query($sql);
+		if (!$resql) {
+			throw new RestException(500, $this->db->lasterror());
+		}
+		$alerts = array();
+		while ($obj = $this->db->fetch_object($resql)) {
+			$alerts[] = array(
+				'date' => $this->db->jdate($obj->date_log),
+				'folder' => CrmClientConnectorAntispamImap::decodeFolderName($obj->folder),
+				'from' => $obj->from_email,
+				'detail' => $obj->auth_detail,
+				'thirdparty' => $this->_antispamThirdparty((int) $obj->fk_soc),
+				'contact' => $this->_antispamContact((int) $obj->fk_socpeople),
+			);
+		}
+		$this->db->free($resql);
+
+		return $alerts;
+	}
+
+	/**
+	 * Mailbox of an anti-spam call: anti-spam enabled, user allowed to read thirdparties, mailbox in the list of the
+	 * email accounts and active
+	 *
+	 * @param	string	$accountEmail	Email address of the mailbox
+	 * @return	EmailAccount
+	 *
+	 * @throws RestException
+	 */
+	private function _fetchAntispamAccount($accountEmail)
+	{
+		if (!CrmClientConnectorAntispamImap::isEnabled()) {
+			throw new RestException(404, 'Anti-spam disabled');
+		}
+		if (!DolibarrApiAccess::$user->hasRight('societe', 'lire')) {
+			throw new RestException(403);
+		}
+		$obj = $this->db->getRow("SELECT rowid FROM ".$this->db->prefix()."crmclientconnector_emailaccount WHERE email_account = '".$this->db->escape(trim((string) $accountEmail))."' AND status = 1");
+		if (!$obj) {
+			throw new RestException(403, 'Email account not allowed');
+		}
+		$account = new EmailAccount($this->db);
+		if ($account->fetch((int) $obj->rowid) <= 0) {
+			throw new RestException(403, 'Email account not allowed');
+		}
+		return $account;
+	}
+
+	/**
+	 * Id and name of a thirdparty for the anti-spam answers
+	 *
+	 * @param	int		$socid	Thirdparty id
+	 * @return	array{id:int,name:string}|null
+	 */
+	private function _antispamThirdparty($socid)
+	{
+		if ($socid <= 0) {
+			return null;
+		}
+		$obj = $this->db->getRow("SELECT nom FROM ".$this->db->prefix()."societe WHERE rowid = ".((int) $socid));
+		return $obj ? array('id' => (int) $socid, 'name' => (string) $obj->nom) : null;
+	}
+
+	/**
+	 * Id and name of a contact for the anti-spam answers
+	 *
+	 * @param	int		$contactid	Contact id
+	 * @return	array{id:int,name:string}|null
+	 */
+	private function _antispamContact($contactid)
+	{
+		if ($contactid <= 0) {
+			return null;
+		}
+		$obj = $this->db->getRow("SELECT firstname, lastname FROM ".$this->db->prefix()."socpeople WHERE rowid = ".((int) $contactid));
+		return $obj ? array('id' => (int) $contactid, 'name' => trim($obj->firstname.' '.$obj->lastname)) : null;
 	}
 
 	/**

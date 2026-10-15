@@ -33,13 +33,15 @@ dol_include_once('/crmclientconnector/class/antispamwhitelist.class.php');
  * UID kept in llx_crmclientconnector_antispam_folder, so a message is read only once). Only the headers are read and
  * the messages stay unread. An email of a known sender (see CrmClientConnectorAntispamWhitelist) authenticated by our
  * receiving server (see CrmClientConnectorAntispamAuth) is moved back to the inbox, with the keyword $NotJunk when the
- * task mark_notjunk is on. A known sender not authenticated is only written in the log.
+ * task mark_notjunk is on. A known sender whose authentication fails gets the spoofing keyword (tasks spoof_junk,
+ * and spoof_inbox for the inbox, read too), shown as an alert by the DoliConnector Thunderbird extension.
  */
 class CrmClientConnectorAntispamScanner
 {
 	const ACTION_RESCUED = 'rescued';
 	const ACTION_NOT_RESCUED = 'notrescued';
 	const ACTION_BLOCKED = 'blocked';
+	const ACTION_SPOOF = 'spoof';
 
 	/**
 	 * @var DoliDB Database handler
@@ -120,7 +122,7 @@ class CrmClientConnectorAntispamScanner
 				$nbErrors++;
 				$lines[] = $account->email_account.': '.$this->error;
 			} else {
-				$lines[] = $account->email_account.': '.$langs->transnoentities('AntispamScanSummary', $stats['read'], $stats['rescued'], $stats['notrescued'], $stats['blocked']);
+				$lines[] = $account->email_account.': '.self::getSummary($stats);
 			}
 		}
 
@@ -135,23 +137,32 @@ class CrmClientConnectorAntispamScanner
 	}
 
 	/**
-	 * Scan the junk folders of a mailbox
+	 * Scan a mailbox: its junk folders (rescue of the known senders, spoofing), then its inbox (spoofing)
 	 *
 	 * @param	EmailAccount	$account	Mailbox
-	 * @return	array{read:int,rescued:int,notrescued:int,blocked:int}|null		Counters, null on error (see $this->error)
+	 * @return	array{read:int,rescued:int,notrescued:int,blocked:int,spoof:int}|null		Counters, null on error (see $this->error)
 	 */
 	public function scanAccount($account)
 	{
 		global $langs;
 
 		$this->error = '';
-		$stats = array('read' => 0, 'rescued' => 0, 'notrescued' => 0, 'blocked' => 0);
+		$stats = self::emptyStats();
 
-		$folders = array_values(array_filter($account->getAntispamJunkFolders(), function ($folder) {
-			return strtoupper($folder) !== 'INBOX';
-		}));
-		if (empty($folders) || !CrmClientConnectorAntispamWhitelist::isUsedBy($account)) {
-			// Nothing to do for this mailbox (no junk folder chosen or no rescue task on)
+		// Folders to read, with their role
+		$folders = array();
+		if (CrmClientConnectorAntispamWhitelist::isUsedBy($account) || CrmClientConnectorAntispamImap::isTaskEnabled($account, 'spoof_junk')) {
+			foreach ($account->getAntispamJunkFolders() as $folder) {
+				if (strtoupper($folder) !== 'INBOX') {
+					$folders[$folder] = false;
+				}
+			}
+		}
+		if (CrmClientConnectorAntispamImap::isTaskEnabled($account, 'spoof_inbox')) {
+			$folders['INBOX'] = true;
+		}
+		if (empty($folders)) {
+			// Nothing to do for this mailbox (no junk folder chosen and no task on)
 			$this->saveAccountScan($account, '');
 			return $stats;
 		}
@@ -174,12 +185,12 @@ class CrmClientConnectorAntispamScanner
 		}
 
 		$errors = array();
-		foreach ($folders as $folder) {
+		foreach ($folders as $folder => $isInbox) {
 			try {
-				$folderStats = $this->scanJunkFolder($client, $account, $folder);
+				$folderStats = $this->scanFolder($client, $account, (string) $folder, $isInbox);
 			} catch (Exception $e) {
 				$folderStats = null;
-				$this->error = $langs->transnoentities('AntispamErrorFolder', CrmClientConnectorAntispamImap::decodeFolderName($folder), $e->getMessage());
+				$this->error = $langs->transnoentities('AntispamErrorFolder', CrmClientConnectorAntispamImap::decodeFolderName((string) $folder), $e->getMessage());
 			}
 			if ($folderStats === null) {
 				$errors[] = $this->error;
@@ -203,18 +214,48 @@ class CrmClientConnectorAntispamScanner
 	}
 
 	/**
-	 * Read the new messages of a junk folder and move back to the inbox the ones of authenticated known senders
+	 * Counters of a scan, all at 0
 	 *
-	 * @param	\Webklex\PHPIMAP\Client	$client		Connected client
-	 * @param	EmailAccount			$account	Mailbox
-	 * @param	string					$folder		IMAP path of the junk folder
-	 * @return	array{read:int,rescued:int,notrescued:int,blocked:int}|null	Null on error (see $this->error)
+	 * @return array{read:int,rescued:int,notrescued:int,blocked:int,spoof:int}
 	 */
-	protected function scanJunkFolder($client, $account, $folder)
+	public static function emptyStats()
+	{
+		return array('read' => 0, 'rescued' => 0, 'notrescued' => 0, 'blocked' => 0, 'spoof' => 0);
+	}
+
+	/**
+	 * Summary of a scan for the user
+	 *
+	 * @param	array{read:int,rescued:int,notrescued:int,blocked:int,spoof:int}	$stats	Counters
+	 * @return	string
+	 */
+	public static function getSummary($stats)
 	{
 		global $langs;
 
-		$stats = array('read' => 0, 'rescued' => 0, 'notrescued' => 0, 'blocked' => 0);
+		$summary = $langs->transnoentities('AntispamScanSummary', $stats['read'], $stats['rescued'], $stats['notrescued'], $stats['blocked']);
+		if ($stats['spoof'] > 0) {
+			$summary .= ', '.$langs->transnoentities('AntispamScanSummarySpoof', $stats['spoof']);
+		}
+		return $summary;
+	}
+
+	/**
+	 * Read the new messages of a folder.
+	 * Junk folder: an authenticated known sender is moved back to the inbox, a known sender whose authentication fails
+	 * is flagged as spoofing (task spoof_junk). Inbox: only the spoofing flag (task spoof_inbox), nothing is moved.
+	 *
+	 * @param	\Webklex\PHPIMAP\Client	$client		Connected client
+	 * @param	EmailAccount			$account	Mailbox
+	 * @param	string					$folder		IMAP path of the folder
+	 * @param	bool					$isInbox	The folder is the inbox
+	 * @return	array{read:int,rescued:int,notrescued:int,blocked:int,spoof:int}|null	Null on error (see $this->error)
+	 */
+	protected function scanFolder($client, $account, $folder, $isInbox)
+	{
+		global $langs;
+
+		$stats = self::emptyStats();
 		$connection = $client->getConnection();
 
 		$status = $connection->selectFolder($folder);
@@ -244,6 +285,8 @@ class CrmClientConnectorAntispamScanner
 		$targetFolder = getDolGlobalString('CRMCLIENTCONNECTOR_ANTISPAM_TARGET_FOLDER', 'INBOX');
 		$authservIds = self::getAuthservIds();
 		$markNotJunk = CrmClientConnectorAntispamImap::isTaskEnabled($account, 'mark_notjunk');
+		$flagSpoof = CrmClientConnectorAntispamImap::isTaskEnabled($account, $isInbox ? 'spoof_inbox' : 'spoof_junk');
+		$spoofKeyword = self::getSpoofKeyword();
 		$maxUid = $lastUid;
 
 		foreach (array_chunk($uids, 50) as $chunk) {
@@ -260,6 +303,22 @@ class CrmClientConnectorAntispamScanner
 				if ($fromAddress === '') {
 					continue;
 				}
+
+				if ($isInbox) {
+					// Inbox: an address of a known customer, supplier, contact or of the whitelist, not authenticated
+					$sender = $this->whitelist->getSpoofSender($fromAddress, $account);
+					if (!$sender) {
+						continue;
+					}
+					$auth = CrmClientConnectorAntispamAuth::check($headers, $fromAddress, $authservIds);
+					if ($auth['result'] === CrmClientConnectorAntispamAuth::RESULT_FAIL && $flagSpoof) {
+						$connection->store(array($spoofKeyword), $uid, null, '+', true, true);
+						$stats['spoof']++;
+						$this->addLog($account, $folder, $headers, $fromAddress, $sender, self::ACTION_SPOOF, $auth);
+					}
+					continue;
+				}
+
 				// Blacklisted customer or supplier: left in junk, written in the log so that nobody wonders why
 				// (a blacklisted unknown address is not logged, junk folders are full of them)
 				if ($this->whitelist->hasRule($fromAddress, $account, CrmClientConnectorAntispamRule::TYPE_BLACK)) {
@@ -270,28 +329,48 @@ class CrmClientConnectorAntispamScanner
 					}
 					continue;
 				}
+
+				// Known sender for the rescue (sources chosen by the tasks), or at least for the spoofing
 				$sender = $this->whitelist->find($fromAddress, $account);
-				if (!$sender) {
+				$spoofSender = $sender ? $sender : $this->whitelist->getSpoofSender($fromAddress, $account);
+				if (!$spoofSender) {
 					continue;
 				}
 
 				$auth = CrmClientConnectorAntispamAuth::check($headers, $fromAddress, $authservIds);
-				$action = self::ACTION_NOT_RESCUED;
-				if ($auth['result'] === CrmClientConnectorAntispamAuth::RESULT_PASS) {
+				if ($auth['result'] === CrmClientConnectorAntispamAuth::RESULT_PASS && $sender) {
 					if ($this->moveToInbox($connection, $uid, $targetFolder, $markNotJunk)) {
-						$action = self::ACTION_RESCUED;
-					} else {
-						$auth['detail'] .= ' / '.$langs->transnoentities('AntispamErrorMove');
+						$stats['rescued']++;
+						$this->addLog($account, $folder, $headers, $fromAddress, $sender, self::ACTION_RESCUED, $auth);
+						continue;
 					}
+					$auth['detail'] .= ' / '.$langs->transnoentities('AntispamErrorMove');
+				} elseif ($auth['result'] === CrmClientConnectorAntispamAuth::RESULT_FAIL && $flagSpoof) {
+					$connection->store(array($spoofKeyword), $uid, null, '+', true, true);
+					$stats['spoof']++;
+					$this->addLog($account, $folder, $headers, $fromAddress, $spoofSender, self::ACTION_SPOOF, $auth);
+					continue;
 				}
-				$stats[$action]++;
-				$this->addLog($account, $folder, $headers, $fromAddress, $sender, $action, $auth);
+				if ($sender) {
+					$stats['notrescued']++;
+					$this->addLog($account, $folder, $headers, $fromAddress, $sender, self::ACTION_NOT_RESCUED, $auth);
+				}
 			}
 		}
 
 		$this->saveFolderState($account->id, $folder, (int) $status['uidvalidity'], $maxUid);
 
 		return $stats;
+	}
+
+	/**
+	 * IMAP keyword set on the emails flagged as spoofing (read by the DoliConnector Thunderbird extension)
+	 *
+	 * @return string
+	 */
+	public static function getSpoofKeyword()
+	{
+		return getDolGlobalString('CRMCLIENTCONNECTOR_ANTISPAM_SPOOF_KEYWORD', 'doliconnector_spoof');
 	}
 
 	/**

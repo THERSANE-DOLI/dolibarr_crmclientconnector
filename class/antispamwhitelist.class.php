@@ -72,17 +72,22 @@ class CrmClientConnectorAntispamWhitelist
 	/**
 	 * Load the known senders
 	 *
-	 * @return int	Number of addresses, -1 on error
+	 * @param	string	$onlyEmail	Load only this address (check of one email, faster than the whole list)
+	 * @return	int					Number of addresses, -1 on error
 	 */
-	public function load()
+	public function load($onlyEmail = '')
 	{
 		$this->senders = array();
+		$onlyEmail = strtolower(trim($onlyEmail));
+		// An email field may hold several addresses: rough filter in SQL, exact match done by add() / find()
+		$filterSoc = $onlyEmail !== '' ? " AND s.email LIKE '%".$this->db->escape($this->db->escapeforlike($onlyEmail))."%'" : '';
+		$filterContact = $onlyEmail !== '' ? " AND c.email LIKE '%".$this->db->escape($this->db->escapeforlike($onlyEmail))."%'" : '';
 
 		$sql = "SELECT s.rowid, s.email, s.client, s.fournisseur";
 		$sql .= " FROM ".$this->db->prefix()."societe as s";
 		$sql .= " WHERE s.entity IN (".getEntity('societe').")";
 		$sql .= " AND s.status = 1 AND s.email IS NOT NULL AND s.email <> ''";
-		$sql .= " AND (s.client IN (1, 3) OR s.fournisseur = 1)";
+		$sql .= " AND (s.client IN (1, 3) OR s.fournisseur = 1)".$filterSoc;
 		$resql = $this->db->query($sql);
 		if (!$resql) {
 			$this->error = $this->db->lasterror();
@@ -98,7 +103,7 @@ class CrmClientConnectorAntispamWhitelist
 		$sql .= " INNER JOIN ".$this->db->prefix()."societe as s ON s.rowid = c.fk_soc";
 		$sql .= " WHERE c.entity IN (".getEntity('contact').")";
 		$sql .= " AND c.statut = 1 AND c.email IS NOT NULL AND c.email <> ''";
-		$sql .= " AND s.status = 1 AND (s.client IN (1, 3) OR s.fournisseur = 1)";
+		$sql .= " AND s.status = 1 AND (s.client IN (1, 3) OR s.fournisseur = 1)".$filterContact;
 		$resql = $this->db->query($sql);
 		if (!$resql) {
 			$this->error = $this->db->lasterror();
@@ -117,6 +122,9 @@ class CrmClientConnectorAntispamWhitelist
 			return -1;
 		}
 		foreach ($rules as $rule) {
+			if ($onlyEmail !== '' && $rule['email'] !== $onlyEmail) {
+				continue;
+			}
 			$this->rules[$rule['email']][] = array('type' => $rule['type'], 'accountId' => $rule['fk_emailaccount']);
 		}
 
@@ -211,6 +219,26 @@ class CrmClientConnectorAntispamWhitelist
 			}
 		}
 		return $this->senders[$email][0];
+	}
+
+	/**
+	 * Known sender for the spoofing check: any active customer, supplier or contact of Dolibarr (whatever the rescue
+	 * tasks), or an address of the manual whitelist
+	 *
+	 * @param	string			$email		Address
+	 * @param	EmailAccount	$account	Mailbox
+	 * @return	array{socid:int,contactid:int,customer:bool,supplier:bool}|null
+	 */
+	public function getSpoofSender($email, $account)
+	{
+		$sender = $this->getDolibarrSender($email);
+		if ($sender) {
+			return $sender;
+		}
+		if ($this->hasRule($email, $account, CrmClientConnectorAntispamRule::TYPE_WHITE)) {
+			return array('socid' => 0, 'contactid' => 0, 'customer' => false, 'supplier' => false);
+		}
+		return null;
 	}
 
 	/**

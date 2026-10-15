@@ -172,7 +172,7 @@ if (empty($reshook)) {
 		if ($stats === null) {
 			setEventMessages($scanner->error, null, 'errors');
 		} else {
-			setEventMessages($langs->trans('AntispamScanSummary', $stats['read'], $stats['rescued'], $stats['notrescued'], $stats['blocked']), null, 'mesgs');
+			setEventMessages(CrmClientConnectorAntispamScanner::getSummary($stats), null, 'mesgs');
 		}
 		header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id);
 		exit;

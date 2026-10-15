@@ -96,6 +96,7 @@ $actions = array(
 	CrmClientConnectorAntispamScanner::ACTION_RESCUED => $langs->trans('AntispamActionRescued'),
 	CrmClientConnectorAntispamScanner::ACTION_NOT_RESCUED => $langs->trans('AntispamActionNotRescued'),
 	CrmClientConnectorAntispamScanner::ACTION_BLOCKED => $langs->trans('AntispamActionBlocked'),
+	CrmClientConnectorAntispamScanner::ACTION_SPOOF => $langs->trans('AntispamActionSpoof'),
 );
 $permissionRules = $user->admin || $user->hasRight('crmclientconnector', 'antispamrule', 'write');
 
@@ -245,6 +246,8 @@ while ($i < min($num, $limit)) {
 	print '<td class="nowraponall">';
 	if ($obj->action == CrmClientConnectorAntispamScanner::ACTION_RESCUED) {
 		print '<span class="badge badge-status4">'.$langs->trans('AntispamActionRescued').'</span>';
+	} elseif ($obj->action == CrmClientConnectorAntispamScanner::ACTION_SPOOF) {
+		print '<span class="badge badge-status8">'.img_picto('', 'warning', 'class="pictofixedwidth"').$langs->trans('AntispamActionSpoof').'</span>';
 	} elseif ($obj->action == CrmClientConnectorAntispamScanner::ACTION_BLOCKED) {
 		print '<span class="badge badge-status8">'.$langs->trans('AntispamActionBlocked').'</span>';
 	} else {
@@ -253,7 +256,7 @@ while ($i < min($num, $limit)) {
 	// Quick add of the sender to the manual lists (form prefilled, nothing saved before confirmation)
 	if ($permissionRules) {
 		$ruleUrl = dol_buildpath('/crmclientconnector/antispam_rules.php', 1).'?email='.urlencode($obj->from_email).'&fk_emailaccount='.((int) $obj->fk_emailaccount);
-		if ($obj->action != CrmClientConnectorAntispamScanner::ACTION_RESCUED) {
+		if ($obj->action != CrmClientConnectorAntispamScanner::ACTION_RESCUED && $obj->action != CrmClientConnectorAntispamScanner::ACTION_SPOOF) {
 			print ' <a class="marginleftonlyshort" href="'.$ruleUrl.'&type=white" title="'.dol_escape_htmltag($langs->trans('AntispamAddToWhitelist')).'">'.img_picto('', 'fa-thumbs-up', 'class="opacitymedium"').'</a>';
 		}
 		if ($obj->action != CrmClientConnectorAntispamScanner::ACTION_BLOCKED) {
