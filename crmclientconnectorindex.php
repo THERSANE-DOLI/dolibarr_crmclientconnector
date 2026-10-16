@@ -86,6 +86,12 @@ if (isset($user->socid) && $user->socid > 0) {
 //if (empty($user->admin)) {
 //	accessforbidden('Must be admin');
 //}
+if (!isModEnabled('crmclientconnector')) {
+	accessforbidden('Module not enabled');
+}
+if (!$user->hasRight('crmclientconnector', 'emailaccount', 'read') && !$user->hasRight('crmclientconnector', 'emaillink', 'read') && !$user->hasRight('crmclientconnector', 'emailusermsg', 'read')) {
+	accessforbidden();
+}
 
 
 /*

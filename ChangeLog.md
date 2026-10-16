@@ -1,5 +1,36 @@
 # CHANGELOG CRMCLIENTCONNECTOR FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
+## 1.5.8
+
+- FIX: the home page of the module did not check any right: one of the rights to read the email accounts, the
+  email links or the email notes is now required.
+
+## 1.5.7
+
+- FIX: a document created from a mail (proposal, order, ticket, event) was linked to the mail even when the user
+  is not allowed to link the mails: the right « Create/Update » of the email links is now required.
+
+## 1.5.6
+
+- FIX: REST API of the links between mails and documents: the documents linked to a mail were listed, and a
+  document could be linked, without the right to read its type (orders, invoices...) nor the restriction of a
+  sales representative to his thirdparties. These documents are now left out, and linking them is refused.
+
+## 1.5.5
+
+- FIX: REST API of the anti-spam alerts: the alerts of any mailbox were returned to a user allowed to read the
+  thirdparties. The rights of the anti-spam journal now apply (all the mailboxes, or the mailboxes of the user),
+  and the name of a thirdparty is left out for a sales representative not allowed to see it.
+
+## 1.5.4
+
+- FIX: anti-spam: the connection of a mailbox (connection mode, own server, port, encryption) and its owner can
+  only be changed by an administrator. A user allowed to change the email accounts could set his own server and
+  receive the password of the Dovecot master user, or the password of the mailbox, when testing the connection.
+  - REST API: when an email account is created or updated, these fields are ignored for a user who is not an
+    administrator, the technical fields and the password are always ignored, and the encrypted password is no
+    longer returned.
+
 ## 1.5.3
 
 - FIX: the unique index on the address of the email accounts was declared on a column that does not exist

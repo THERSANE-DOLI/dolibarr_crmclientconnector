@@ -98,6 +98,7 @@ AntispamLogin = Identifiant
 AntispamPassword = Mot de passe
 AntispamOwnServer = Serveur IMAP propre à la boîte
 AntispamOwnServerHelp = À remplir seulement si cette boîte n'est pas sur le serveur par défaut de la configuration. Pour Gmail ou Microsoft 365, utilisez un mot de passe d'application.
+AntispamConnectionAdminOnly = Seul un administrateur peut modifier la connexion, le serveur et le propriétaire de la boîte
 AntispamDefaultServer = Serveur par défaut : %s
 AntispamServerFromSetup = serveur par défaut
 AntispamErrorNoServer = Aucun serveur IMAP : renseignez le serveur par défaut dans la configuration ou le serveur de la boîte.

@@ -83,6 +83,9 @@ include DOL_DOCUMENT_ROOT.'/core/actions_fetchobject.inc.php'; // Must be includ
 
 $permissiontoread = $user->admin || $user->hasRight('crmclientconnector', 'emailaccount', 'read');
 $permissiontoadd = $user->admin || $user->hasRight('crmclientconnector', 'emailaccount', 'write');
+// The connection (server, connection mode, owner) is set by an administrator : the master password of the setup
+// or the password of the mailbox would be sent to the server set here
+$canSetConnection = !empty($user->admin);
 
 if (!isModEnabled('crmclientconnector') || !CrmClientConnectorAntispamImap::isEnabled()) {
 	accessforbidden();
@@ -112,8 +115,10 @@ if (empty($reshook)) {
 	}
 
 	if ($action == 'update_antispam' && $permissiontoadd) {
-		$fkUser = (int) GETPOST('fk_user', 'int');
-		$object->fk_user = $fkUser > 0 ? $fkUser : null;
+		if ($canSetConnection) {
+			$fkUser = (int) GETPOST('fk_user', 'int');
+			$object->fk_user = $fkUser > 0 ? $fkUser : null;
+		}
 		// Tasks: '' = follow the setup, '1' / '0' = forced for this mailbox
 		$overrides = array();
 		foreach (array_keys(CrmClientConnectorAntispamImap::getTasks()) as $task) {
@@ -125,8 +130,10 @@ if (empty($reshook)) {
 		$object->setAntispamJunkFolders(is_array($folders) ? $folders : array());
 
 		// Connection: Dovecot master user or own login / password, default server or own server
-		$object->antispam_auth_mode = GETPOST('antispam_auth_mode', 'aZ09') == 'login' ? 'login' : 'master';
-		if ($object->antispam_auth_mode == 'login') {
+		if ($canSetConnection) {
+			$object->antispam_auth_mode = GETPOST('antispam_auth_mode', 'aZ09') == 'login' ? 'login' : 'master';
+		}
+		if (CrmClientConnectorAntispamImap::getAuthMode($object) == 'login') {
 			$object->antispam_login = trim(GETPOST('antispam_login', 'alphanohtml'));
 			// 'none': a password may contain any character ('password' filter does not exist in Dolibarr 18)
 			$password = GETPOST('antispam_password', 'none');
@@ -138,13 +145,15 @@ if (empty($reshook)) {
 			$object->antispam_login = null;
 			$object->antispam_password = null;
 		}
-		$object->antispam_imap_host = trim(GETPOST('antispam_imap_host', 'alphanohtml'));
-		$port = (int) GETPOST('antispam_imap_port', 'int');
-		$object->antispam_imap_port = ($object->antispam_imap_host !== '' && $port > 0 && $port <= 65535) ? $port : null;
-		$encryption = GETPOST('antispam_imap_encryption', 'aZ09');
-		$object->antispam_imap_encryption = ($object->antispam_imap_host !== '' && in_array($encryption, array('ssl', 'tls', 'none'))) ? $encryption : null;
-		if ($object->antispam_imap_host === '') {
-			$object->antispam_imap_host = null;
+		if ($canSetConnection) {
+			$object->antispam_imap_host = trim(GETPOST('antispam_imap_host', 'alphanohtml'));
+			$port = (int) GETPOST('antispam_imap_port', 'int');
+			$object->antispam_imap_port = ($object->antispam_imap_host !== '' && $port > 0 && $port <= 65535) ? $port : null;
+			$encryption = GETPOST('antispam_imap_encryption', 'aZ09');
+			$object->antispam_imap_encryption = ($object->antispam_imap_host !== '' && in_array($encryption, array('ssl', 'tls', 'none'))) ? $encryption : null;
+			if ($object->antispam_imap_host === '') {
+				$object->antispam_imap_host = null;
+			}
 		}
 
 		if ($object->update($user) > 0) {
@@ -244,11 +253,14 @@ if ($action == 'edit_antispam' && $permissiontoadd) {
 		$authMode = 'login';
 	}
 	print '<tr><td class="titlefield">'.$langs->trans('AntispamAuthMode').'</td><td>';
-	print '<select name="antispam_auth_mode" class="flat minwidth300 crmcc-antispam-authmode">';
+	print '<select name="antispam_auth_mode" class="flat minwidth300 crmcc-antispam-authmode"'.($canSetConnection ? '' : ' disabled').'>';
 	print '<option value="master"'.($authMode == 'master' ? ' selected' : '').(CrmClientConnectorAntispamImap::isMasterConfigured() ? '' : ' disabled').'>';
 	print dol_escape_htmltag($langs->trans('AntispamAuthModeMaster').(CrmClientConnectorAntispamImap::isMasterConfigured() ? '' : ' ('.$langs->trans('AntispamMasterNotConfigured').')')).'</option>';
 	print '<option value="login"'.($authMode == 'login' ? ' selected' : '').'>'.dol_escape_htmltag($langs->trans('AntispamAuthModeLogin')).'</option>';
 	print '</select>';
+	if (!$canSetConnection) {
+		print ' <span class="opacitymedium">'.$langs->trans('AntispamConnectionAdminOnly').'</span>';
+	}
 	print '</td></tr>';
 
 	$loginRowClass = 'crmcc-antispam-login-row'.($authMode == 'login' ? '' : ' hidden');
@@ -265,14 +277,14 @@ if ($action == 'edit_antispam' && $permissiontoadd) {
 
 	$defaultServer = getDolGlobalString('CRMCLIENTCONNECTOR_ANTISPAM_IMAP_HOST');
 	print '<tr><td>'.$form->textwithpicto($langs->trans('AntispamOwnServer'), $langs->trans('AntispamOwnServerHelp')).'</td><td>';
-	print '<input type="text" class="flat minwidth300" name="antispam_imap_host" value="'.dol_escape_htmltag((string) $object->antispam_imap_host).'" placeholder="'.dol_escape_htmltag($defaultServer !== '' ? $langs->trans('AntispamDefaultServer', $defaultServer) : 'mail.example.com').'">';
-	print ' <input type="number" class="flat width75" min="1" max="65535" name="antispam_imap_port" value="'.($object->antispam_imap_port > 0 ? (int) $object->antispam_imap_port : '').'" placeholder="993">';
+	print '<input type="text" class="flat minwidth300" name="antispam_imap_host"'.($canSetConnection ? '' : ' disabled').' value="'.dol_escape_htmltag((string) $object->antispam_imap_host).'" placeholder="'.dol_escape_htmltag($defaultServer !== '' ? $langs->trans('AntispamDefaultServer', $defaultServer) : 'mail.example.com').'">';
+	print ' <input type="number" class="flat width75" min="1" max="65535" name="antispam_imap_port"'.($canSetConnection ? '' : ' disabled').' value="'.($object->antispam_imap_port > 0 ? (int) $object->antispam_imap_port : '').'" placeholder="993">';
 	$encryptions = array('ssl' => $langs->trans('AntispamEncryptionSsl'), 'tls' => $langs->trans('AntispamEncryptionStartTls'), 'none' => $langs->trans('AntispamEncryptionNone'));
-	print ' '.$form->selectarray('antispam_imap_encryption', $encryptions, $object->antispam_imap_encryption ? $object->antispam_imap_encryption : 'ssl', 0, 0, 0, '', 0, 0, 0, '', 'minwidth150');
+	print ' '.$form->selectarray('antispam_imap_encryption', $encryptions, $object->antispam_imap_encryption ? $object->antispam_imap_encryption : 'ssl', 0, 0, 0, '', 0, 0, ($canSetConnection ? 0 : 1), '', 'minwidth150');
 	print '</td></tr>';
 
 	print '<tr><td>'.$form->textwithpicto($langs->trans('AntispamMailboxOwner'), $langs->trans('AntispamMailboxOwnerHelp')).'</td><td>';
-	print img_picto('', 'user', 'class="pictofixedwidth"').$form->select_dolusers($object->fk_user, 'fk_user', 1, null, 0, '', '', '0', 0, 0, '', 0, '', 'minwidth300');
+	print img_picto('', 'user', 'class="pictofixedwidth"').$form->select_dolusers($object->fk_user, 'fk_user', 1, null, ($canSetConnection ? 0 : 1), '', '', '0', 0, 0, '', 0, '', 'minwidth300');
 	print '</td></tr>';
 
 	print '<tr><td>'.$form->textwithpicto($langs->trans('AntispamJunkFolders'), $langs->trans('AntispamJunkFoldersHelp')).'</td><td>';

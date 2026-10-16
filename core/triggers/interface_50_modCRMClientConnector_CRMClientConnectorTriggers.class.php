@@ -102,6 +102,10 @@ class InterfaceCRMClientConnectorTriggers extends DolibarrTriggers
 		if (empty($accountEmail) || empty($msgId)) {
 			return 0;
 		}
+		// Same right as linking a mail to a document from DoliConnector
+		if (!$user->hasRight('crmclientconnector', 'emaillink', 'write')) {
+			return 0;
+		}
 
 		$emaillink = crmclientconnectorGetOrCreateEmailLink($this->db, $user, $accountEmail, $msgId);
 		if (!is_object($emaillink)) {

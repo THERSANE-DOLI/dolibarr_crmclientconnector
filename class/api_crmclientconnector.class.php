@@ -329,6 +329,9 @@ class CRMClientConnector extends DolibarrApi
 		$result = $this->_validateEmailAccount($request_data);
 
 		foreach ($request_data as $field => $value) {
+			if ($this->_isProtectedEmailAccountField($field)) {
+				continue;
+			}
 			if ($field === 'caller') {
 				// Add a mention of caller so on trigger called after action, we can filter to avoid a loop if we try to sync back again with the caller
 				$this->emailaccount->context['caller'] = sanitizeVal($request_data['caller'], 'aZ09');
@@ -382,7 +385,7 @@ class CRMClientConnector extends DolibarrApi
 		}
 
 		foreach ($request_data as $field => $value) {
-			if ($field == 'id') {
+			if ($field == 'id' || $this->_isProtectedEmailAccountField($field)) {
 				continue;
 			}
 			if ($field === 'caller') {
@@ -459,6 +462,28 @@ class CRMClientConnector extends DolibarrApi
 		);
 	}
 
+
+	/**
+	 * Fields of an email account that the API does not set
+	 *
+	 * The technical fields are never set. The connection of the anti-spam (server, connection mode, owner) is set
+	 * by an administrator only: the master password of the setup or the password of the mailbox would be sent to
+	 * the server set here. The password is set from the anti-spam tab only (it is stored encrypted).
+	 *
+	 * @param	string	$field	Name of the field
+	 * @return	bool			True if the field must be ignored
+	 */
+	private function _isProtectedEmailAccountField($field)
+	{
+		if (in_array($field, array('rowid', 'entity', 'fk_user_creat', 'fk_user_modif', 'date_creation', 'tms', 'antispam_password'), true)) {
+			return true;
+		}
+		if (empty(DolibarrApiAccess::$user->admin)
+			&& in_array($field, array('fk_user', 'antispam_auth_mode', 'antispam_imap_host', 'antispam_imap_port', 'antispam_imap_encryption'), true)) {
+			return true;
+		}
+		return false;
+	}
 
 	/**
 	 * Validate fields before create or update object
@@ -789,6 +814,45 @@ class CRMClientConnector extends DolibarrApi
 	);
 
 	/**
+	 * Right to read each type of LINKABLE_ELEMENT_TYPES
+	 */
+	const LINKABLE_TYPE_READ_RIGHTS = array(
+		'ord'  => array('commande', 'lire'),
+		'pro'  => array('propal', 'lire'),
+		'inv'  => array('facture', 'lire'),
+		'sord' => array('fournisseur', 'commande', 'lire'),
+		'sinv' => array('fournisseur', 'facture', 'lire'),
+		'spro' => array('supplier_proposal', 'lire'),
+		'shi'  => array('expedition', 'lire'),
+		'con'  => array('contrat', 'lire'),
+		'tic'  => array('ticket', 'read'),
+		'proj' => array('projet', 'lire'),
+		'int'  => array('ficheinter', 'lire'),
+		'mem'  => array('adherent', 'lire'),
+		'act'  => array('agenda', 'allactions', 'read'),
+	);
+
+	/**
+	 * Can the API user read this document: right to read its type, and its thirdparty for a sales representative
+	 * restricted to his thirdparties
+	 *
+	 * @param	string	$type	Short type code from LINKABLE_ELEMENT_TYPES
+	 * @param	int		$socid	Thirdparty of the document, 0 if none
+	 * @return	bool
+	 */
+	private function _canReadLinkable($type, $socid)
+	{
+		if (!isset(self::LINKABLE_TYPE_READ_RIGHTS[$type])) {
+			return false;
+		}
+		list($module, $permlevel1, $permlevel2) = array_pad(self::LINKABLE_TYPE_READ_RIGHTS[$type], 3, '');
+		if (!DolibarrApiAccess::$user->hasRight($module, $permlevel1, $permlevel2)) {
+			return false;
+		}
+		return $socid <= 0 || DolibarrApi::_checkAccessToResource('societe', $socid);
+	}
+
+	/**
 	 * Fetch (read-only, does not create) the EmailLink for an accountEmail+msgId pair.
 	 *
 	 * @param	string	$accountEmail	Email address of the mailbox owning the message
@@ -841,6 +905,10 @@ class CRMClientConnector extends DolibarrApi
 				continue; // Not one of the types this endpoint deals with (could be the reverse link back to 'emaillink' itself)
 			}
 			foreach ($objects as $linkedObject) {
+				$linkedSocid = !empty($linkedObject->socid) ? (int) $linkedObject->socid : (!empty($linkedObject->fk_soc) ? (int) $linkedObject->fk_soc : 0);
+				if (!$this->_canReadLinkable($typeByElement[$elementtype], $linkedSocid)) {
+					continue; // Document the user is not allowed to see
+				}
 				$result[] = array(
 					'type' => $typeByElement[$elementtype],
 					'elementtype' => $elementtype,
@@ -892,16 +960,20 @@ class CRMClientConnector extends DolibarrApi
 			throw new RestException(400, 'Missing or invalid accountEmail/msgId/type/elementid');
 		}
 
-		$emaillink = crmclientconnectorGetOrCreateEmailLink($this->db, DolibarrApiAccess::$user, $accountEmail, $msgId);
-		if (!is_object($emaillink)) {
-			throw new RestException(500, 'Error creating EmailLink for this mail');
-		}
-
 		$elementtype = self::LINKABLE_ELEMENT_TYPES[$type];
 
 		$targetObject = fetchObjectByElement($elementid, $elementtype);
 		if (!is_object($targetObject)) {
 			throw new RestException(404, ucfirst($elementtype).' not found');
+		}
+		$targetSocid = !empty($targetObject->socid) ? (int) $targetObject->socid : (!empty($targetObject->fk_soc) ? (int) $targetObject->fk_soc : 0);
+		if (!$this->_canReadLinkable($type, $targetSocid)) {
+			throw new RestException(403, 'Not allowed to read this '.$elementtype);
+		}
+
+		$emaillink = crmclientconnectorGetOrCreateEmailLink($this->db, DolibarrApiAccess::$user, $accountEmail, $msgId);
+		if (!is_object($emaillink)) {
+			throw new RestException(500, 'Error creating EmailLink for this mail');
 		}
 
 		// fetchObjectByElement() sets ->module as a convenience for its own cache/isModEnabled
@@ -1639,7 +1711,7 @@ class CRMClientConnector extends DolibarrApi
 	 * @param	string	$msgId			Message-Id of the email (with or without < >)
 	 * @return	array					List of {date, folder, from, detail, thirdparty {id, name}|null, contact {id, name}|null}
 	 *
-	 * @throws RestException 403 Not allowed (right to read thirdparties)
+	 * @throws RestException 403 Not allowed (right to read thirdparties, right to read the anti-spam journal of this mailbox)
 	 * @throws RestException 404 Anti-spam disabled, or mailbox not in the list of the email accounts
 	 *
 	 * @url	GET antispam/alerts
@@ -1647,6 +1719,13 @@ class CRMClientConnector extends DolibarrApi
 	public function getAntispamAlerts($accountEmail, $msgId)
 	{
 		$account = $this->_fetchAntispamAccount($accountEmail);
+
+		// Same rights as the anti-spam journal: all the mailboxes, or the mailboxes of the user
+		$apiUser = DolibarrApiAccess::$user;
+		if (!$apiUser->admin && !$apiUser->hasRight('crmclientconnector', 'antispamlog', 'readall')
+			&& !($apiUser->hasRight('crmclientconnector', 'antispamlog', 'read') && $account->fk_user == $apiUser->id)) {
+			throw new RestException(403);
+		}
 
 		$msgId = trim((string) $msgId, " <>");
 		if ($msgId === '') {
@@ -1717,6 +1796,10 @@ class CRMClientConnector extends DolibarrApi
 	private function _antispamThirdparty($socid)
 	{
 		if ($socid <= 0) {
+			return null;
+		}
+		// Sales representative restricted to his thirdparties
+		if (!DolibarrApi::_checkAccessToResource('societe', $socid)) {
 			return null;
 		}
 		$obj = $this->db->getRow("SELECT nom FROM ".$this->db->prefix()."societe WHERE rowid = ".((int) $socid));
@@ -1814,6 +1897,8 @@ class CRMClientConnector extends DolibarrApi
 
 		unset($object->rowid);
 		unset($object->canvas);
+		// Encrypted password of the anti-spam connection of an email account
+		unset($object->antispam_password);
 
 		// If object has lines, remove $db property
 		if (isset($object->lines) && is_array($object->lines) && count($object->lines) > 0) {

@@ -116,6 +116,7 @@ AntispamLogin = Login
 AntispamPassword = Password
 AntispamOwnServer = Own IMAP server of the mailbox
 AntispamOwnServerHelp = Fill in only if this mailbox is not on the default server of the setup. For Gmail or Microsoft 365, use an app password.
+AntispamConnectionAdminOnly = Only an administrator can change the connection, the server and the owner of the mailbox
 AntispamDefaultServer = Default server: %s
 AntispamServerFromSetup = default server
 AntispamErrorNoServer = No IMAP server: fill in the default server in the setup or the server of the mailbox.
