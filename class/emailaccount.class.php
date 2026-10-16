@@ -124,6 +124,20 @@ class EmailAccount extends CommonObject
 		"import_key" => array("type"=>"varchar(14)", "label"=>"ImportId", "enabled"=>"1", 'position'=>1000, 'notnull'=>-1, "visible"=>"-2",),
 		"model_pdf" => array("type"=>"varchar(255)", "label"=>"Model pdf", "enabled"=>"1", 'position'=>1010, 'notnull'=>-1, "visible"=>"0",),
 		"status" => array("type"=>"integer", "label"=>"Status", "enabled"=>"1", 'position'=>2000, 'notnull'=>1, "visible"=>"1", "index"=>"1", "arrayofkeyval"=>array("0" => "Brouillon", 1 => "Actif", 9 => "Désactivé"), "validate"=>"1",),
+		// Anti-spam IMAP (edited in the "Anti-spam" tab, not in the generic card form)
+		"fk_user" => array("type"=>"integer:User:user/class/user.class.php", "label"=>"AntispamMailboxOwner", "picto"=>"user", "enabled"=>"1", 'position'=>3000, 'notnull'=>-1, "visible"=>"0",),
+		"antispam_active" => array("type"=>"integer", "label"=>"AntispamActive", "enabled"=>"1", 'position'=>3010, 'notnull'=>1, 'default'=>'0', "visible"=>"0",),
+		"antispam_junk_folders" => array("type"=>"text", "label"=>"AntispamJunkFolders", "enabled"=>"1", 'position'=>3020, 'notnull'=>0, "visible"=>"0",),
+		"antispam_tasks" => array("type"=>"text", "label"=>"AntispamTasks", "enabled"=>"1", 'position'=>3030, 'notnull'=>0, "visible"=>"0",),
+		"antispam_date_last_scan" => array("type"=>"datetime", "label"=>"AntispamDateLastScan", "enabled"=>"1", 'position'=>3040, 'notnull'=>0, "visible"=>"0",),
+		"antispam_last_error" => array("type"=>"text", "label"=>"AntispamLastError", "enabled"=>"1", 'position'=>3050, 'notnull'=>0, "visible"=>"0",),
+		// Connection without Dovecot master user: own login / password (encrypted with dolEncrypt) and optionally own server
+		"antispam_auth_mode" => array("type"=>"varchar(16)", "label"=>"AntispamAuthMode", "enabled"=>"1", 'position'=>3060, 'notnull'=>1, 'default'=>'master', "visible"=>"0",),
+		"antispam_login" => array("type"=>"varchar(255)", "label"=>"AntispamLogin", "enabled"=>"1", 'position'=>3070, 'notnull'=>0, "visible"=>"0",),
+		"antispam_password" => array("type"=>"text", "label"=>"AntispamPassword", "enabled"=>"1", 'position'=>3080, 'notnull'=>0, "visible"=>"0",),
+		"antispam_imap_host" => array("type"=>"varchar(255)", "label"=>"AntispamImapHost", "enabled"=>"1", 'position'=>3090, 'notnull'=>0, "visible"=>"0",),
+		"antispam_imap_port" => array("type"=>"integer", "label"=>"AntispamImapPort", "enabled"=>"1", 'position'=>3100, 'notnull'=>0, "visible"=>"0",),
+		"antispam_imap_encryption" => array("type"=>"varchar(8)", "label"=>"AntispamImapEncryption", "enabled"=>"1", 'position'=>3110, 'notnull'=>0, "visible"=>"0",),
 	);
 	public $rowid;
 	public $email_account;
@@ -140,6 +154,22 @@ class EmailAccount extends CommonObject
 	public $import_key;
 	public $model_pdf;
 	public $status;
+	public $fk_user;
+	public $antispam_active;
+	/** @var string|null JSON array of IMAP folder paths */
+	public $antispam_junk_folders;
+	/** @var string|null JSON object {task: 0|1} of the tasks forced for this mailbox, other tasks follow the setup */
+	public $antispam_tasks;
+	public $antispam_date_last_scan;
+	public $antispam_last_error;
+	/** @var string 'master' (Dovecot master user) or 'login' (own login and password) */
+	public $antispam_auth_mode;
+	public $antispam_login;
+	/** @var string|null Password encrypted with dolEncrypt() */
+	public $antispam_password;
+	public $antispam_imap_host;
+	public $antispam_imap_port;
+	public $antispam_imap_encryption;
 	// END MODULEBUILDER PROPERTIES
 
 
@@ -459,6 +489,68 @@ class EmailAccount extends CommonObject
 	public function update(User $user, $notrigger = 0)
 	{
 		return $this->updateCommon($user, $notrigger);
+	}
+
+	/**
+	 * Anti-spam junk folders chosen for this mailbox
+	 *
+	 * @return string[]	IMAP folder paths
+	 */
+	public function getAntispamJunkFolders()
+	{
+		$folders = json_decode((string) $this->antispam_junk_folders, true);
+		if (!is_array($folders)) {
+			return array();
+		}
+		return array_values(array_filter(array_map('strval', $folders), 'strlen'));
+	}
+
+	/**
+	 * Anti-spam tasks forced for this mailbox (the other tasks follow the module setup)
+	 *
+	 * @return array<string,int>	Task => 0|1
+	 */
+	public function getAntispamTaskOverrides()
+	{
+		$tasks = json_decode((string) $this->antispam_tasks, true);
+		if (!is_array($tasks)) {
+			return array();
+		}
+		$overrides = array();
+		foreach ($tasks as $task => $value) {
+			$overrides[(string) $task] = empty($value) ? 0 : 1;
+		}
+		return $overrides;
+	}
+
+	/**
+	 * Set the anti-spam tasks forced for this mailbox (not saved, call update())
+	 *
+	 * @param	array<string,int|string|null>	$overrides	Task => 1 (forced on), 0 (forced off), '' or null (follow the setup)
+	 * @return	void
+	 */
+	public function setAntispamTaskOverrides($overrides)
+	{
+		$tasks = array();
+		foreach ((array) $overrides as $task => $value) {
+			if ($value === '' || $value === null) {
+				continue;
+			}
+			$tasks[(string) $task] = empty($value) ? 0 : 1;
+		}
+		$this->antispam_tasks = empty($tasks) ? null : json_encode($tasks);
+	}
+
+	/**
+	 * Set anti-spam junk folders (not saved, call update())
+	 *
+	 * @param	string[]	$folders	IMAP folder paths
+	 * @return	void
+	 */
+	public function setAntispamJunkFolders($folders)
+	{
+		$folders = array_values(array_unique(array_filter(array_map('strval', (array) $folders), 'strlen')));
+		$this->antispam_junk_folders = empty($folders) ? null : json_encode($folders);
 	}
 
 	/**

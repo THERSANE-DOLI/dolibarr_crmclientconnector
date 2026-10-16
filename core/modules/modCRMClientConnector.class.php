@@ -76,7 +76,7 @@ class modCRMClientConnector extends DolibarrModules
 		$this->editor_squarred_logo = '';					// Must be image filename into the module/img directory followed with @modulename. Example: 'myimage.png@crmclientconnector'
 
 		// Possible values for version are: 'development', 'experimental', 'dolibarr', 'dolibarr_deprecated', 'experimental_deprecated' or a version string like 'x.y.z'
-		$this->version = '1.1.0';
+		$this->version = '1.5.8';
 		// Url to the file with your last numberversion of this module
 		$this->url_last_version = 'https://raw.githubusercontent.com/THERSANE-DOLI/dolibarr_crmclientconnector/refs/heads/main/last-version.txt';
 
@@ -171,6 +171,10 @@ class modCRMClientConnector extends DolibarrModules
 		//                             2 => array('CRMCLIENTCONNECTOR_MYNEWCONST2', 'chaine', 'myvalue', 'This is another constant to add', 0, 'current', 1)
 		// );
 		$this->const = array();
+		// Tasks of the anti-spam IMAP: all on by default (each mailbox can force a task on or off)
+		foreach (array('RESCUE_CUSTOMERS', 'RESCUE_SUPPLIERS', 'RESCUE_CONTACTS', 'RESCUE_MANUAL', 'MARK_NOTJUNK', 'SPOOF_JUNK', 'SPOOF_INBOX') as $task) {
+			$this->const[] = array('CRMCLIENTCONNECTOR_ANTISPAM_TASK_'.$task, 'chaine', '1', 'Anti-spam IMAP task on by default', 0, 'current', 0);
+		}
 
 		// Some keys to add into the overwriting translation tables
 		/*$this->overwrite_translation = array(
@@ -289,6 +293,21 @@ class modCRMClientConnector extends DolibarrModules
 		// unit_frequency must be 60 for minute, 3600 for hour, 86400 for day, 604800 for week
 		/* BEGIN MODULEBUILDER CRON */
 		$this->cronjobs = array(
+			// Anti-spam IMAP: scan of the junk folders (disabled until the feature is set up, see its setup tab)
+			0 => array(
+				'label' => 'AntispamCronLabel',
+				'jobtype' => 'method',
+				'class' => '/crmclientconnector/class/antispamscanner.class.php',
+				'objectname' => 'CrmClientConnectorAntispamScanner',
+				'method' => 'runScheduledScan',
+				'parameters' => '',
+				'comment' => 'AntispamCronComment',
+				'frequency' => 5,
+				'unitfrequency' => 60,
+				'status' => 0,
+				'test' => 'isModEnabled("crmclientconnector")',
+				'priority' => 50,
+			),
 			//  0 => array(
 			//      'label' => 'MyJob label',
 			//      'jobtype' => 'method',
@@ -370,6 +389,22 @@ class modCRMClientConnector extends DolibarrModules
 		$this->rights[$r][4] = 'excludeddomains';
 		$this->rights[$r][5] = 'read';
 
+		$r++;
+		$this->rights[$r][0] = $this->numero . sprintf('%02d', (5 * 10) + 0 + 1);
+		$this->rights[$r][1] = 'Read the anti-spam log of the mailboxes of which the user is the employee';
+		$this->rights[$r][4] = 'antispamlog';
+		$this->rights[$r][5] = 'read';
+		$r++;
+		$this->rights[$r][0] = $this->numero . sprintf('%02d', (5 * 10) + 1 + 1);
+		$this->rights[$r][1] = 'Read the anti-spam log of all the mailboxes';
+		$this->rights[$r][4] = 'antispamlog';
+		$this->rights[$r][5] = 'readall';
+		$r++;
+		$this->rights[$r][0] = $this->numero . sprintf('%02d', (6 * 10) + 0 + 1);
+		$this->rights[$r][1] = 'Manage the manual whitelist and blacklist of the anti-spam';
+		$this->rights[$r][4] = 'antispamrule';
+		$this->rights[$r][5] = 'write';
+
 
 		/* END MODULEBUILDER PERMISSIONS */
 
@@ -427,7 +462,39 @@ class modCRMClientConnector extends DolibarrModules
 		);
 
 
-		// Exports profiles provided by this module
+		$this->menu[$r++] = array(
+			'fk_menu' => 'fk_mainmenu=tools,fk_leftmenu=emailaccount',
+			'type' => 'left',
+			'titre' => 'AntispamLog',
+			'mainmenu' => 'tools',
+			'leftmenu' => 'crmclientconnector_antispam_log',
+			'url' => '/crmclientconnector/antispam_log.php',
+			'langs' => 'crmclientconnector@crmclientconnector',
+			'position' => 1000 + $r,
+			'enabled' => 'isModEnabled("crmclientconnector") && getDolGlobalInt("CRMCLIENTCONNECTOR_ANTISPAM_ENABLED")',
+			'perms' => '$user->hasRight("crmclientconnector", "antispamlog", "read") || $user->hasRight("crmclientconnector", "antispamlog", "readall")',
+			'target' => '',
+			'user' => 2,
+		);
+
+
+				$this->menu[$r++] = array(
+			'fk_menu' => 'fk_mainmenu=tools,fk_leftmenu=emailaccount',
+			'type' => 'left',
+			'titre' => 'AntispamRules',
+			'mainmenu' => 'tools',
+			'leftmenu' => 'crmclientconnector_antispam_rules',
+			'url' => '/crmclientconnector/antispam_rules.php',
+			'langs' => 'crmclientconnector@crmclientconnector',
+			'position' => 1000 + $r,
+			'enabled' => 'isModEnabled("crmclientconnector") && getDolGlobalInt("CRMCLIENTCONNECTOR_ANTISPAM_ENABLED")',
+			'perms' => '$user->hasRight("crmclientconnector", "antispamrule", "write")',
+			'target' => '',
+			'user' => 2,
+		);
+
+
+				// Exports profiles provided by this module
 		$r = 0;
 		/* BEGIN MODULEBUILDER EXPORT MYOBJECT */
 		/*
