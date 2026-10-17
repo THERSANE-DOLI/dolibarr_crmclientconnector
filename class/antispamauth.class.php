@@ -111,21 +111,143 @@ class CrmClientConnectorAntispamAuth
 	}
 
 	/**
-	 * Email address of a From header (ex: "Name <a@b.fr>" or "a@b.fr")
+	 * Single email address of a From header value (ex: "Name <a@b.fr>" or "a@b.fr")
 	 *
 	 * @param	string	$value	Raw value of the From header
-	 * @return	string			Address in lower case, '' if none
+	 * @return	string			Address in lower case, '' if none or several addresses
 	 */
 	public static function extractAddress($value)
 	{
-		$value = self::decodeMime($value);
-		if (preg_match('/<\s*([^<>\s]+@[^<>\s]+)\s*>/', $value, $reg)) {
-			return strtolower($reg[1]);
+		$mailboxes = self::parseAddressList($value);
+		return count($mailboxes) === 1 ? $mailboxes[0]['address'] : '';
+	}
+
+	/**
+	 * Sender of an email, read only from the real addresses of the From header(s), never from the display name or a
+	 * comment (they are free text for the sender).
+	 *
+	 * @param	array<int,array{0:string,1:string}>	$headers	Headers from parseHeaders()
+	 * @return	array{address:string,ambiguous:bool,addresses:string[],displayAddresses:string[]}
+	 *          address: the sender ('' when ambiguous); ambiguous: no From, several From headers or several addresses;
+	 *          addresses: all the real addresses; displayAddresses: addresses written in the display names / comments
+	 */
+	public static function analyzeFrom($headers)
+	{
+		$values = array();
+		foreach ($headers as $header) {
+			if ($header[0] === 'from') {
+				$values[] = $header[1];
+			}
 		}
-		if (preg_match('/([^\s<>"\'(),;:]+@[^\s<>"\'(),;:]+)/', $value, $reg)) {
-			return strtolower($reg[1]);
+		$addresses = array();
+		$displayAddresses = array();
+		foreach ($values as $value) {
+			foreach (self::parseAddressList($value) as $mailbox) {
+				$addresses[] = $mailbox['address'];
+				// An address written in the display name, maybe MIME encoded (=?utf-8?B?...?=)
+				if (preg_match_all('/[a-z0-9._%+\'-]+@[a-z0-9.-]+\.[a-z]{2,}/i', self::decodeMime($mailbox['display']), $regs)) {
+					foreach ($regs[0] as $displayAddress) {
+						$displayAddresses[] = strtolower($displayAddress);
+					}
+				}
+			}
 		}
-		return '';
+		$addresses = array_values(array_unique(array_filter($addresses, 'strlen')));
+		$ambiguous = count($values) !== 1 || count($addresses) !== 1;
+
+		return array(
+			'address' => $ambiguous ? '' : $addresses[0],
+			'ambiguous' => $ambiguous,
+			'addresses' => $addresses,
+			'displayAddresses' => array_values(array_unique($displayAddresses)),
+		);
+	}
+
+	/**
+	 * Mailboxes of an address list header value (RFC 5322): the quoted strings and the comments are display text, the
+	 * address is the one between <> or the bare addr-spec. MIME encoded words are not decoded (they can't hold an address).
+	 *
+	 * @param	string	$value	Raw header value
+	 * @return	array<int,array{address:string,display:string}>	Addresses in lower case; display: display name and comments
+	 */
+	public static function parseAddressList($value)
+	{
+		$mailboxes = array();
+		$plain = '';		// Text outside quotes, comments and <>
+		$display = '';		// Quoted strings and comments
+		$angle = null;		// Content of <>, null when none
+		$inQuote = false;
+		$inAngle = false;
+		$depth = 0;
+		$value = (string) $value;
+		$length = strlen($value);
+
+		for ($i = 0; $i <= $length; $i++) {
+			$char = $i < $length ? $value[$i] : ',';
+			if ($char === '\\' && ($inQuote || $depth > 0) && $i + 1 < $length) {
+				$display .= $value[++$i];
+				continue;
+			}
+			if ($inQuote) {
+				if ($char === '"') {
+					$inQuote = false;
+				} else {
+					$display .= $char;
+				}
+				continue;
+			}
+			if ($depth > 0) {
+				if ($char === '(') {
+					$depth++;
+				} elseif ($char === ')') {
+					$depth--;
+				}
+				if ($depth > 0) {
+					$display .= $char;
+				}
+				continue;
+			}
+			if ($inAngle) {
+				if ($char === '>') {
+					$inAngle = false;
+				} else {
+					$angle .= $char;
+				}
+				continue;
+			}
+			if ($char === '"') {
+				$inQuote = true;
+			} elseif ($char === '(') {
+				$depth = 1;
+				$display .= ' ';
+			} elseif ($char === '<') {
+				$inAngle = true;
+				$angle = '';
+			} elseif ($char === ',' || $char === ';' || $char === ':') {
+				// End of a mailbox (':' and ';' delimit a group "name: a@b, c@d;", the group name is display text)
+				if ($char === ':') {
+					$display .= ' '.$plain;
+					$plain = '';
+					continue;
+				}
+				$address = $angle !== null ? trim($angle) : trim($plain);
+				if ($angle !== null) {
+					$display .= ' '.$plain;
+				}
+				// Route of an obsolete angle address "<@route:a@b>"
+				$address = strtolower((string) preg_replace('/^@[^:]*:/', '', $address));
+				if ($address !== '' && preg_match('/^[^\s@<>()",;:]+@[^\s@<>()",;:]+$/', $address)) {
+					$mailboxes[] = array('address' => $address, 'display' => trim($display));
+				}
+				$plain = '';
+				$display = '';
+				$angle = null;
+			} else {
+				$plain .= $char;
+			}
+		}
+
+		return $mailboxes;
 	}
 
 	/**
@@ -152,7 +274,8 @@ class CrmClientConnectorAntispamAuth
 	{
 		$domain = strtolower(trim($domain));
 		$fromDomain = strtolower(trim($fromDomain));
-		if ($domain === '' || $fromDomain === '') {
+		// A top level domain alone (ex: "fr", "com") is never an aligned domain
+		if ($domain === '' || $fromDomain === '' || strpos($domain, '.') === false) {
 			return false;
 		}
 		return $domain === $fromDomain || substr($fromDomain, -strlen('.'.$domain)) === '.'.$domain;
@@ -179,25 +302,44 @@ class CrmClientConnectorAntispamAuth
 			if ($header[0] !== 'authentication-results') {
 				continue;
 			}
-			$value = self::removeComments($header[1]);
-			$parts = array_map('trim', explode(';', $value));
-			$authservId = strtolower((string) preg_replace('/\s.*$/', '', $parts[0]));
+			$parts = self::splitStructured($header[1]);
+			$authservId = $parts === null ? '' : strtolower((string) preg_replace('/\s.*$/', '', trim($parts[0])));
+			if ($parts === null) {
+				// Unbalanced quotes or comments: maybe ours, made unreadable on purpose by a forged value
+				$authservId = strtolower((string) preg_replace('/[\s;].*$/', '', trim($header[1])));
+				if (in_array($authservId, $authservIds, true)) {
+					return array('result' => self::RESULT_FAIL, 'detail' => 'malformed Authentication-Results ['.$authservId.']');
+				}
+				continue;
+			}
 			if (!in_array($authservId, $authservIds, true)) {
 				continue;
 			}
 			return self::checkAuthenticationResults(array_slice($parts, 1), $fromDomain, $authservId);
 		}
 
-		// 2. Else Received-SPF of our server (first one)
+		// 2. Else Received-SPF of our server (first one), unless disabled in the setup
 		$spf = self::getHeader($headers, 'received-spf');
-		if ($spf !== '') {
-			$result = strtolower((string) preg_replace('/[\s(;].*$/', '', $spf));
-			$envelopeFrom = '';
-			if (preg_match('/envelope-from=([^;\s]+)/i', $spf, $reg)) {
-				$envelopeFrom = trim($reg[1], '"<> ');
+		if ($spf !== '' && !getDolGlobalInt('CRMCLIENTCONNECTOR_ANTISPAM_DISABLE_RECEIVED_SPF')) {
+			$result = strtolower((string) preg_replace('/[\s(;].*$/', '', trim($spf)));
+			$parts = self::splitStructured((string) preg_replace('/^\S+/', '', trim($spf)));
+			$keys = array();
+			$malformed = $parts === null;
+			foreach ((array) $parts as $part) {
+				// "key=value" pairs separated by ';' (the comment of the result is removed by splitStructured)
+				if (!preg_match('/^\s*([a-z0-9_-]+)\s*=\s*(.*)$/i', $part, $reg)) {
+					continue;
+				}
+				$key = strtolower($reg[1]);
+				if (isset($keys[$key])) {
+					$malformed = true;
+				}
+				$keys[$key] = trim(trim($reg[2]), '"<> ');
 			}
+			$envelopeFrom = isset($keys['envelope-from']) ? $keys['envelope-from'] : '';
 			$detail = 'spf='.$result.($envelopeFrom !== '' ? ' ('.$envelopeFrom.')' : '').' [Received-SPF]';
-			if ($result === 'pass' && self::isAligned(self::getDomain($envelopeFrom), $fromDomain)) {
+			if (!$malformed && $result === 'pass' && (!isset($keys['identity']) || strtolower($keys['identity']) === 'mailfrom')
+				&& self::isAligned(self::getDomain($envelopeFrom), $fromDomain)) {
 				return array('result' => self::RESULT_PASS, 'detail' => $detail);
 			}
 			return array('result' => self::RESULT_FAIL, 'detail' => $detail);
@@ -222,13 +364,20 @@ class CrmClientConnectorAntispamAuth
 		$spfAligned = false;
 		$summary = array();
 
+		$seen = array();
+		$duplicate = false;
 		foreach ($results as $result) {
-			if (!preg_match('/^([a-z0-9_-]+)\s*=\s*([a-z]+)(.*)$/i', $result, $reg)) {
+			if (!preg_match('/^\s*([a-z0-9_-]+)\s*=\s*([a-z]+)(.*)$/is', $result, $reg)) {
 				continue;
 			}
 			$method = strtolower($reg[1]);
 			$value = strtolower($reg[2]);
 			$properties = self::parseProperties($reg[3]);
+			// One result of spf and of dmarc per header: a second one is a forged value (several dkim are normal)
+			if (in_array($method, array('spf', 'dmarc'), true) && isset($seen[$method])) {
+				$duplicate = true;
+			}
+			$seen[$method] = true;
 
 			if ($method === 'dmarc') {
 				$dmarc = $value;
@@ -253,10 +402,17 @@ class CrmClientConnectorAntispamAuth
 
 		$detail = implode(', ', $summary).' ['.$authservId.']';
 
+		if ($duplicate) {
+			return array('result' => self::RESULT_FAIL, 'detail' => $detail.' (duplicate result)');
+		}
 		if ($headerFrom !== '' && $headerFrom !== $fromDomain) {
 			return array('result' => self::RESULT_FAIL, 'detail' => $detail.' header.from='.$headerFrom);
 		}
 		if ($dmarc === 'pass') {
+			// DMARC is only meaningful for the domain it was evaluated on
+			if ($headerFrom === '') {
+				return array('result' => self::RESULT_FAIL, 'detail' => $detail.' (dmarc without header.from)');
+			}
 			return array('result' => self::RESULT_PASS, 'detail' => $detail);
 		}
 		if ($dmarc === 'fail') {
@@ -269,43 +425,87 @@ class CrmClientConnectorAntispamAuth
 	}
 
 	/**
-	 * Properties of a result ("header.d=example.com smtp.mailfrom=a@b.fr")
+	 * Properties of a result ("header.d=example.com smtp.mailfrom=a@b.fr"), values maybe quoted
 	 *
-	 * @param	string	$text	Text after "method=result"
+	 * @param	string	$text	Text after "method=result" (comments already removed)
 	 * @return	array<string,string>
 	 */
 	protected static function parseProperties($text)
 	{
 		$properties = array();
-		if (preg_match_all('/([a-z0-9_.-]+)\s*=\s*("[^"]*"|[^\s;]+)/i', $text, $regs, PREG_SET_ORDER)) {
+		if (preg_match_all('/([a-z0-9_.-]+)\s*=\s*("(?:[^"\\\\]|\\\\.)*"|[^\s;]+)/i', $text, $regs, PREG_SET_ORDER)) {
 			foreach ($regs as $reg) {
-				$properties[strtolower($reg[1])] = trim($reg[2], '"');
+				$value = $reg[2];
+				if (strlen($value) >= 2 && $value[0] === '"') {
+					$value = stripcslashes(substr($value, 1, -1));
+				}
+				$properties[strtolower($reg[1])] = $value;
 			}
 		}
 		return $properties;
 	}
 
 	/**
-	 * Remove the comments (in parentheses, maybe nested) of a header value
+	 * Split a structured header value on ';' (RFC 8601 / RFC 5322): the comments are removed, the quoted strings are
+	 * kept as is (a ';' or a '(' inside quotes is text, not a separator nor a comment), backslash escapes are respected.
 	 *
 	 * @param	string	$value	Header value
-	 * @return	string
+	 * @return	string[]|null		Parts, null when a quoted string or a comment is not closed (malformed value)
 	 */
-	protected static function removeComments($value)
+	public static function splitStructured($value)
 	{
-		$result = '';
+		$parts = array();
+		$current = '';
+		$inQuote = false;
 		$depth = 0;
+		$value = (string) $value;
 		$length = strlen($value);
 		for ($i = 0; $i < $length; $i++) {
 			$char = $value[$i];
-			if ($char === '(') {
-				$depth++;
-			} elseif ($char === ')' && $depth > 0) {
-				$depth--;
-			} elseif ($depth === 0) {
-				$result .= $char;
+			if ($char === '\\' && ($inQuote || $depth > 0)) {
+				if ($i + 1 >= $length) {
+					return null;
+				}
+				if ($inQuote) {
+					$current .= $char.$value[$i + 1];
+				}
+				$i++;
+				continue;
+			}
+			if ($inQuote) {
+				$current .= $char;
+				if ($char === '"') {
+					$inQuote = false;
+				}
+				continue;
+			}
+			if ($depth > 0) {
+				if ($char === '(') {
+					$depth++;
+				} elseif ($char === ')') {
+					$depth--;
+				}
+				continue;
+			}
+			if ($char === '"') {
+				$inQuote = true;
+				$current .= $char;
+			} elseif ($char === '(') {
+				$depth = 1;
+				$current .= ' ';
+			} elseif ($char === ')') {
+				return null;
+			} elseif ($char === ';') {
+				$parts[] = $current;
+				$current = '';
+			} else {
+				$current .= $char;
 			}
 		}
-		return $result;
+		if ($inQuote || $depth > 0) {
+			return null;
+		}
+		$parts[] = $current;
+		return $parts;
 	}
 }

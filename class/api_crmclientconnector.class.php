@@ -200,9 +200,8 @@ class CRMClientConnector extends DolibarrApi
 		if (!DolibarrApiAccess::$user->hasRight('crmclientconnector', 'emailaccount', 'read')) {
 			throw new RestException(403);
 		}
-		if (!DolibarrApi::_checkAccessToResource('emailaccount', $id, 'crmclientconnector_emailaccount')) {
-			throw new RestException(403, 'Access to instance id='.$id.' of object not allowed for login '.DolibarrApiAccess::$user->login);
-		}
+		// No thirdparty nor entity on the objects of this module: the rights of the module are the access rule (a
+		// thirdparty check made the request fail for a sales representative restricted to his thirdparties)
 
 		$result = $this->emailaccount->fetch($id);
 		if (!$result) {
@@ -272,6 +271,10 @@ class CRMClientConnector extends DolibarrApi
 			}
 		}
 		if ($sqlfilters) {
+			// Never filter on the anti-spam fields (the encrypted password could be guessed character by character)
+			if (preg_match('/antispam_|fk_user\b/i', $sqlfilters)) {
+				throw new RestException(400, 'Filter not allowed on the anti-spam fields');
+			}
 			$errormessage = '';
 			$sql .= forgeSQLFromUniversalSearchCriteria($sqlfilters, $errormessage);
 			if ($errormessage) {
@@ -302,7 +305,8 @@ class CRMClientConnector extends DolibarrApi
 				$i++;
 			}
 		} else {
-			throw new RestException(503, 'Error when retrieving emailaccount list: '.$this->db->lasterror());
+			dol_syslog(__METHOD__.' '.$this->db->lasterror(), LOG_ERR);
+			throw new RestException(503, 'Error when retrieving emailaccount list');
 		}
 
 		return $obj_ret;
@@ -375,9 +379,8 @@ class CRMClientConnector extends DolibarrApi
 		if (!DolibarrApiAccess::$user->hasRight('crmclientconnector', 'emailaccount', 'write')) {
 			throw new RestException(403);
 		}
-		if (!DolibarrApi::_checkAccessToResource('emailaccount', $id, 'crmclientconnector_emailaccount')) {
-			throw new RestException(403, 'Access to instance id='.$this->emailaccount->id.' of object not allowed for login '.DolibarrApiAccess::$user->login);
-		}
+		// No thirdparty nor entity on the objects of this module: the rights of the module are the access rule (a
+		// thirdparty check made the request fail for a sales representative restricted to his thirdparties)
 
 		$result = $this->emailaccount->fetch($id);
 		if (!$result) {
@@ -415,7 +418,7 @@ class CRMClientConnector extends DolibarrApi
 		// $this->emailaccount->abc = sanitizeVal($this->emailaccount->abc, 'alphanohtml');
 
 		if ($this->emailaccount->update(DolibarrApiAccess::$user, false) > 0) {
-			return $this->get($id);
+			return $this->getEmailAccounts($id);
 		} else {
 			throw new RestException(500, $this->emailaccount->error);
 		}
@@ -439,18 +442,18 @@ class CRMClientConnector extends DolibarrApi
 		if (!DolibarrApiAccess::$user->hasRight('crmclientconnector', 'emailaccount', 'delete')) {
 			throw new RestException(403);
 		}
-		if (!DolibarrApi::_checkAccessToResource('emailaccount', $id, 'crmclientconnector_emailaccount')) {
-			throw new RestException(403, 'Access to instance id='.$this->emailaccount->id.' of object not allowed for login '.DolibarrApiAccess::$user->login);
-		}
+		// No thirdparty nor entity on the objects of this module: the rights of the module are the access rule (a
+		// thirdparty check made the request fail for a sales representative restricted to his thirdparties)
 
 		$result = $this->emailaccount->fetch($id);
 		if (!$result) {
 			throw new RestException(404, 'EmailAccount not found');
 		}
 
-		if ($this->emailaccount->delete(DolibarrApiAccess::$user) == 0) {
+		$result = $this->emailaccount->delete(DolibarrApiAccess::$user);
+		if ($result == 0) {
 			throw new RestException(409, 'Error when deleting EmailAccount : '.$this->emailaccount->error);
-		} elseif ($this->emailaccount->delete(DolibarrApiAccess::$user) < 0) {
+		} elseif ($result < 0) {
 			throw new RestException(500, 'Error when deleting EmailAccount : '.$this->emailaccount->error);
 		}
 
@@ -530,9 +533,8 @@ class CRMClientConnector extends DolibarrApi
 		if (!DolibarrApiAccess::$user->hasRight('crmclientconnector', 'emaillink', 'read')) {
 			throw new RestException(403);
 		}
-		if (!DolibarrApi::_checkAccessToResource('emaillink', $id, 'crmclientconnector_emaillink')) {
-			throw new RestException(403, 'Access to instance id='.$id.' of object not allowed for login '.DolibarrApiAccess::$user->login);
-		}
+		// No thirdparty nor entity on the objects of this module: the rights of the module are the access rule (a
+		// thirdparty check made the request fail for a sales representative restricted to his thirdparties)
 
 		$result = $this->emaillink->fetch($id);
 		if (!$result) {
@@ -632,7 +634,8 @@ class CRMClientConnector extends DolibarrApi
 				$i++;
 			}
 		} else {
-			throw new RestException(503, 'Error when retrieving emaillink list: '.$this->db->lasterror());
+			dol_syslog(__METHOD__.' '.$this->db->lasterror(), LOG_ERR);
+			throw new RestException(503, 'Error when retrieving emaillink list');
 		}
 
 		return $obj_ret;
@@ -658,25 +661,9 @@ class CRMClientConnector extends DolibarrApi
 		// Check mandatory fields
 		$result = $this->_validateEmailLink($request_data);
 
-		foreach ($request_data as $field => $value) {
-			if ($field === 'caller') {
-				// Add a mention of caller so on trigger called after action, we can filter to avoid a loop if we try to sync back again with the caller
-				$this->emaillink->context['caller'] = sanitizeVal($request_data['caller'], 'aZ09');
-				continue;
-			}
-
-			if ($field == 'array_options' && is_array($value)) {
-				foreach ($value as $index => $val) {
-					$this->emaillink->array_options[$index] = $this->_checkValForAPI('extrafields', $val, $this->emaillink);
-				}
-				continue;
-			}
-
-			$this->emaillink->$field = $this->_checkValForAPI($field, $value, $this->emaillink);
-		}
-
-		// Clean data
-		// $this->emaillink->abc = sanitizeVal($this->emaillink->abc, 'alphanohtml');
+		// Only the fields of a link (never the author, dates, ids...), checked
+		$this->_assignRequestData($this->emaillink, $request_data, array('fk_email_account', 'email_msgid'));
+		$this->_checkEmailLinkData($this->emaillink);
 
 		if ($this->emaillink->create(DolibarrApiAccess::$user)<0) {
 			throw new RestException(500, "Error creating EmailLink", array_merge(array($this->emaillink->error), $this->emaillink->errors));
@@ -702,47 +689,20 @@ class CRMClientConnector extends DolibarrApi
 		if (!DolibarrApiAccess::$user->hasRight('crmclientconnector', 'emaillink', 'write')) {
 			throw new RestException(403);
 		}
-		if (!DolibarrApi::_checkAccessToResource('emaillink', $id, 'crmclientconnector_emaillink')) {
-			throw new RestException(403, 'Access to instance id='.$this->emaillink->id.' of object not allowed for login '.DolibarrApiAccess::$user->login);
-		}
+		// No thirdparty nor entity on the objects of this module: the rights of the module are the access rule (a
+		// thirdparty check made the request fail for a sales representative restricted to his thirdparties)
 
 		$result = $this->emaillink->fetch($id);
 		if (!$result) {
 			throw new RestException(404, 'EmailLink not found');
 		}
 
-		foreach ($request_data as $field => $value) {
-			if ($field == 'id') {
-				continue;
-			}
-			if ($field === 'caller') {
-				// Add a mention of caller so on trigger called after action, we can filter to avoid a loop if we try to sync back again with the caller
-				$this->emaillink->context['caller'] = sanitizeVal($request_data['caller'], 'aZ09');
-				continue;
-			}
-
-			if ($field == 'array_options' && is_array($value)) {
-				foreach ($value as $index => $val) {
-					$this->emaillink->array_options[$index] = $this->_checkValForAPI('extrafields', $val, $this->emaillink);
-				}
-				continue;
-			}
-
-			if ($field == 'array_options' && is_array($value)) {
-				foreach ($value as $index => $val) {
-					$this->emaillink->array_options[$index] = $this->_checkValForAPI($field, $val, $this->emaillink);
-				}
-				continue;
-			}
-
-			$this->emaillink->$field = $this->_checkValForAPI($field, $value, $this->emaillink);
-		}
-
-		// Clean data
-		// $this->emaillink->abc = sanitizeVal($this->emaillink->abc, 'alphanohtml');
+		// Only the fields of a link (never the author, dates, ids...), checked
+		$this->_assignRequestData($this->emaillink, $request_data, array('fk_email_account', 'email_msgid'));
+		$this->_checkEmailLinkData($this->emaillink);
 
 		if ($this->emaillink->update(DolibarrApiAccess::$user, false) > 0) {
-			return $this->get($id);
+			return $this->getEmailLink($id);
 		} else {
 			throw new RestException(500, $this->emaillink->error);
 		}
@@ -766,18 +726,18 @@ class CRMClientConnector extends DolibarrApi
 		if (!DolibarrApiAccess::$user->hasRight('crmclientconnector', 'emaillink', 'delete')) {
 			throw new RestException(403);
 		}
-		if (!DolibarrApi::_checkAccessToResource('emaillink', $id, 'crmclientconnector_emaillink')) {
-			throw new RestException(403, 'Access to instance id='.$this->emaillink->id.' of object not allowed for login '.DolibarrApiAccess::$user->login);
-		}
+		// No thirdparty nor entity on the objects of this module: the rights of the module are the access rule (a
+		// thirdparty check made the request fail for a sales representative restricted to his thirdparties)
 
 		$result = $this->emaillink->fetch($id);
 		if (!$result) {
 			throw new RestException(404, 'EmailLink not found');
 		}
 
-		if ($this->emaillink->delete(DolibarrApiAccess::$user) == 0) {
+		$result = $this->emaillink->delete(DolibarrApiAccess::$user);
+		if ($result == 0) {
 			throw new RestException(409, 'Error when deleting EmailLink : '.$this->emaillink->error);
-		} elseif ($this->emaillink->delete(DolibarrApiAccess::$user) < 0) {
+		} elseif ($result < 0) {
 			throw new RestException(500, 'Error when deleting EmailLink : '.$this->emaillink->error);
 		}
 
@@ -840,7 +800,7 @@ class CRMClientConnector extends DolibarrApi
 	 * @param	int		$socid	Thirdparty of the document, 0 if none
 	 * @return	bool
 	 */
-	private function _canReadLinkable($type, $socid)
+	private function _canReadLinkable($type, $socid, $elementid = 0)
 	{
 		if (!isset(self::LINKABLE_TYPE_READ_RIGHTS[$type])) {
 			return false;
@@ -849,7 +809,31 @@ class CRMClientConnector extends DolibarrApi
 		if (!DolibarrApiAccess::$user->hasRight($module, $permlevel1, $permlevel2)) {
 			return false;
 		}
+		// Project: the user must be allowed on this project (contact of the project, or right to read all projects)
+		if ($type === 'proj' && $elementid > 0 && !DolibarrApi::_checkAccessToResource('project', $elementid)) {
+			return false;
+		}
 		return $socid <= 0 || DolibarrApi::_checkAccessToResource('societe', $socid);
+	}
+
+	/**
+	 * Can the API user read a document of a linkable type, found by its id
+	 *
+	 * @param	string	$type		Short type (key of LINKABLE_ELEMENT_TYPES)
+	 * @param	int		$elementid	Id of the document
+	 * @return	bool				False also when the document does not exist
+	 */
+	private function _canReadLinkableId($type, $elementid)
+	{
+		if (!isset(self::LINKABLE_ELEMENT_TYPES[$type]) || $elementid <= 0) {
+			return false;
+		}
+		$targetObject = fetchObjectByElement((int) $elementid, self::LINKABLE_ELEMENT_TYPES[$type]);
+		if (!is_object($targetObject) || empty($targetObject->id)) {
+			return false;
+		}
+		$targetSocid = !empty($targetObject->socid) ? (int) $targetObject->socid : (!empty($targetObject->fk_soc) ? (int) $targetObject->fk_soc : 0);
+		return $this->_canReadLinkable($type, $targetSocid, (int) $elementid);
 	}
 
 	/**
@@ -906,7 +890,7 @@ class CRMClientConnector extends DolibarrApi
 			}
 			foreach ($objects as $linkedObject) {
 				$linkedSocid = !empty($linkedObject->socid) ? (int) $linkedObject->socid : (!empty($linkedObject->fk_soc) ? (int) $linkedObject->fk_soc : 0);
-				if (!$this->_canReadLinkable($typeByElement[$elementtype], $linkedSocid)) {
+				if (!$this->_canReadLinkable($typeByElement[$elementtype], $linkedSocid, (int) $linkedObject->id)) {
 					continue; // Document the user is not allowed to see
 				}
 				$result[] = array(
@@ -967,11 +951,14 @@ class CRMClientConnector extends DolibarrApi
 			throw new RestException(404, ucfirst($elementtype).' not found');
 		}
 		$targetSocid = !empty($targetObject->socid) ? (int) $targetObject->socid : (!empty($targetObject->fk_soc) ? (int) $targetObject->fk_soc : 0);
-		if (!$this->_canReadLinkable($type, $targetSocid)) {
+		if (!$this->_canReadLinkable($type, $targetSocid, $elementid)) {
 			throw new RestException(403, 'Not allowed to read this '.$elementtype);
 		}
 
 		$emaillink = crmclientconnectorGetOrCreateEmailLink($this->db, DolibarrApiAccess::$user, $accountEmail, $msgId);
+		if ($emaillink === -2) {
+			throw new RestException(400, 'Invalid accountEmail or msgId');
+		}
 		if (!is_object($emaillink)) {
 			throw new RestException(500, 'Error creating EmailLink for this mail');
 		}
@@ -1028,6 +1015,10 @@ class CRMClientConnector extends DolibarrApi
 		$emaillink = $this->_fetchEmailLinkReadOnly($accountEmail, $msgId);
 		if (!$emaillink) {
 			throw new RestException(404, 'EmailLink not found');
+		}
+		// Same access rule as linking: only a document the user is allowed to see
+		if (!$this->_canReadLinkableId($type, $elementid)) {
+			throw new RestException(403, 'Not allowed to read this document');
 		}
 
 		$elementtype = self::LINKABLE_ELEMENT_TYPES[$type];
@@ -1219,6 +1210,11 @@ class CRMClientConnector extends DolibarrApi
 			throw new RestException(403);
 		}
 
+		// The document itself must be visible to the user (sales representative restriction, project...)
+		if (isset(self::LINKABLE_ELEMENT_TYPES[$type]) && !$this->_canReadLinkableId($type, (int) $id)) {
+			throw new RestException(403, 'Not allowed to read this document');
+		}
+
 		require_once DOL_DOCUMENT_ROOT.'/categories/class/categorie.class.php';
 		$categorie = new Categorie($this->db);
 
@@ -1275,9 +1271,8 @@ class CRMClientConnector extends DolibarrApi
 		if (!DolibarrApiAccess::$user->hasRight('crmclientconnector', 'emailusermsg', 'read')) {
 			throw new RestException(403);
 		}
-		if (!DolibarrApi::_checkAccessToResource('emailusermsg', $id, 'crmclientconnector_emailusermsg')) {
-			throw new RestException(403, 'Access to instance id='.$id.' of object not allowed for login '.DolibarrApiAccess::$user->login);
-		}
+		// No thirdparty nor entity on the objects of this module: the rights of the module are the access rule (a
+		// thirdparty check made the request fail for a sales representative restricted to his thirdparties)
 
 		$result = $this->emailusermsg->fetch($id);
 		if (!$result) {
@@ -1316,7 +1311,8 @@ class CRMClientConnector extends DolibarrApi
 			throw new RestException(404, 'EmailLink not found');
 		}
 
-		return $this->indexEmailUserMsg($sortfield, $sortorder, $limit, 0,'',  '');
+		// Notes of this mail only
+		return $this->indexEmailUserMsg($sortfield, $sortorder, $limit, (int) $page, '(t.fk_email_link:=:'.((int) $this->emaillink->id).')', $properties);
 	}
 
 	/**
@@ -1425,7 +1421,8 @@ class CRMClientConnector extends DolibarrApi
 				$i++;
 			}
 		} else {
-			throw new RestException(503, 'Error when retrieving emailusermsg list: '.$this->db->lasterror());
+			dol_syslog(__METHOD__.' '.$this->db->lasterror(), LOG_ERR);
+			throw new RestException(503, 'Error when retrieving emailusermsg list');
 		}
 
 		return $obj_ret;
@@ -1467,6 +1464,9 @@ class CRMClientConnector extends DolibarrApi
 			if(empty($emailAccountId)) {
 				throw new RestException(404, 'EmailAccount not found');
 			}
+			if (!crmclientconnectorIsValidMsgId((string) $request_data['emailMsgId'])) {
+				throw new RestException(400, 'Invalid emailMsgId');
+			}
 
 			$emailLink = new EmailLink($this->db);
 			$obj = $this->db->getRow('SELECT rowid as id
@@ -1496,25 +1496,12 @@ class CRMClientConnector extends DolibarrApi
 			throw new RestException(500, 'Data send invalid');
 		}
 
-		foreach ($request_data as $field => $value) {
-			if ($field === 'caller') {
-				// Add a mention of caller so on trigger called after action, we can filter to avoid a loop if we try to sync back again with the caller
-				$this->emailusermsg->context['caller'] = sanitizeVal($request_data['caller'], 'aZ09');
-				continue;
-			}
-
-			if ($field == 'array_options' && is_array($value)) {
-				foreach ($value as $index => $val) {
-					$this->emailusermsg->array_options[$index] = $this->_checkValForAPI('extrafields', $val, $this->emailusermsg);
-				}
-				continue;
-			}
-
-			$this->emailusermsg->$field = $this->_checkValForAPI($field, $value, $this->emailusermsg);
+		// Only the note and its mail: the author is the API user, never a posted value
+		$this->_assignRequestData($this->emailusermsg, $request_data, array('message', 'fk_email_link'));
+		$emailLinkStatic = new EmailLink($this->db);
+		if ((int) $this->emailusermsg->fk_email_link <= 0 || $emailLinkStatic->fetch((int) $this->emailusermsg->fk_email_link) <= 0) {
+			throw new RestException(400, 'Invalid fk_email_link');
 		}
-
-		// Clean data
-		// $this->emailusermsg->abc = sanitizeVal($this->emailusermsg->abc, 'alphanohtml');
 
 		if ($this->emailusermsg->create(DolibarrApiAccess::$user)<0) {
 			throw new RestException(500, "Error creating EmailUserMsg", array_merge(array($this->emailusermsg->error), $this->emailusermsg->errors));
@@ -1542,44 +1529,19 @@ class CRMClientConnector extends DolibarrApi
 		if (!DolibarrApiAccess::$user->hasRight('crmclientconnector', 'emailusermsg', 'write')) {
 			throw new RestException(403);
 		}
-		if (!DolibarrApi::_checkAccessToResource('emailusermsg', $id, 'crmclientconnector_emailusermsg')) {
-			throw new RestException(403, 'Access to instance id='.$this->emailusermsg->id.' of object not allowed for login '.DolibarrApiAccess::$user->login);
-		}
+		// No thirdparty nor entity on the objects of this module: the rights of the module are the access rule (a
+		// thirdparty check made the request fail for a sales representative restricted to his thirdparties)
 
 		$result = $this->emailusermsg->fetch($id);
 		if (!$result) {
 			throw new RestException(404, 'EmailUserMsg not found');
 		}
-
-		foreach ($request_data as $field => $value) {
-			if ($field == 'id') {
-				continue;
-			}
-			if ($field === 'caller') {
-				// Add a mention of caller so on trigger called after action, we can filter to avoid a loop if we try to sync back again with the caller
-				$this->emailusermsg->context['caller'] = sanitizeVal($request_data['caller'], 'aZ09');
-				continue;
-			}
-
-			if ($field == 'array_options' && is_array($value)) {
-				foreach ($value as $index => $val) {
-					$this->emailusermsg->array_options[$index] = $this->_checkValForAPI('extrafields', $val, $this->emailusermsg);
-				}
-				continue;
-			}
-
-			if ($field == 'array_options' && is_array($value)) {
-				foreach ($value as $index => $val) {
-					$this->emailusermsg->array_options[$index] = $this->_checkValForAPI($field, $val, $this->emailusermsg);
-				}
-				continue;
-			}
-
-			$this->emailusermsg->$field = $this->_checkValForAPI($field, $value, $this->emailusermsg);
+		if (!$this->_canChangeEmailUserMsg($this->emailusermsg)) {
+			throw new RestException(403, 'Only the author of a note can change it');
 		}
 
-		// Clean data
-		// $this->emailusermsg->abc = sanitizeVal($this->emailusermsg->abc, 'alphanohtml');
+		// Only the text of the note (never its mail, author, dates...)
+		$this->_assignRequestData($this->emailusermsg, $request_data, array('message'));
 
 		if ($this->emailusermsg->update(DolibarrApiAccess::$user, false) > 0) {
 			return $this->getEmailUserMsg($id);
@@ -1606,18 +1568,21 @@ class CRMClientConnector extends DolibarrApi
 		if (!DolibarrApiAccess::$user->hasRight('crmclientconnector', 'emailusermsg', 'delete')) {
 			throw new RestException(403);
 		}
-		if (!DolibarrApi::_checkAccessToResource('emailusermsg', $id, 'crmclientconnector_emailusermsg')) {
-			throw new RestException(403, 'Access to instance id='.$this->emailusermsg->id.' of object not allowed for login '.DolibarrApiAccess::$user->login);
-		}
+		// No thirdparty nor entity on the objects of this module: the rights of the module are the access rule (a
+		// thirdparty check made the request fail for a sales representative restricted to his thirdparties)
 
 		$result = $this->emailusermsg->fetch($id);
 		if (!$result) {
 			throw new RestException(404, 'EmailUserMsg not found');
 		}
+		if (!$this->_canChangeEmailUserMsg($this->emailusermsg)) {
+			throw new RestException(403, 'Only the author of a note can delete it');
+		}
 
-		if ($this->emailusermsg->delete(DolibarrApiAccess::$user) == 0) {
+		$result = $this->emailusermsg->delete(DolibarrApiAccess::$user);
+		if ($result == 0) {
 			throw new RestException(409, 'Error when deleting EmailUserMsg : '.$this->emailusermsg->error);
-		} elseif ($this->emailusermsg->delete(DolibarrApiAccess::$user) < 0) {
+		} elseif ($result < 0) {
 			throw new RestException(500, 'Error when deleting EmailUserMsg : '.$this->emailusermsg->error);
 		}
 
@@ -1677,25 +1642,56 @@ class CRMClientConnector extends DolibarrApi
 		$account = $this->_fetchAntispamAccount($accountEmail);
 
 		$parsedHeaders = CrmClientConnectorAntispamAuth::parseHeaders((string) $headers);
-		$fromAddress = CrmClientConnectorAntispamAuth::extractAddress(CrmClientConnectorAntispamAuth::getHeader($parsedHeaders, 'from'));
+		// Real address of the sender only (never the display name), '' when the From is ambiguous
+		$from = CrmClientConnectorAntispamAuth::analyzeFrom($parsedHeaders);
+		$fromAddress = $from['address'];
 
-		$answer = array('from' => $fromAddress, 'result' => CrmClientConnectorAntispamAuth::RESULT_UNKNOWN, 'detail' => '', 'known' => false, 'spoof' => false, 'thirdparty' => null, 'contact' => null);
-		if ($fromAddress === '') {
+		$answer = array('from' => $fromAddress !== '' ? $fromAddress : implode(', ', $from['addresses']), 'result' => CrmClientConnectorAntispamAuth::RESULT_UNKNOWN, 'detail' => '', 'known' => false, 'spoof' => false, 'thirdparty' => null, 'contact' => null);
+
+		// Addresses to look for: the sender, and the addresses of an ambiguous From or written in the display name
+		$impersonated = $from['ambiguous'] ? $from['addresses'] : array();
+		foreach ($from['displayAddresses'] as $displayAddress) {
+			if ($displayAddress !== $fromAddress) {
+				$impersonated[] = $displayAddress;
+			}
+		}
+		$impersonated = array_values(array_unique($impersonated));
+		$candidates = array_values(array_unique(array_filter(array_merge(array($fromAddress), $impersonated), 'strlen')));
+		if (empty($candidates)) {
 			return $answer;
 		}
 
 		$whitelist = new CrmClientConnectorAntispamWhitelist($this->db);
-		if ($whitelist->load($fromAddress) < 0) {
-			throw new RestException(500, $whitelist->error);
+		if ($whitelist->load(count($candidates) === 1 ? $candidates[0] : '') < 0) {
+			dol_syslog(__METHOD__.' '.$whitelist->error, LOG_ERR);
+			throw new RestException(500, 'Error while reading the known senders');
 		}
-		$sender = $whitelist->getSpoofSender($fromAddress, $account);
+		$spoofTasks = CrmClientConnectorAntispamImap::isTaskEnabled($account, 'spoof_inbox') || CrmClientConnectorAntispamImap::isTaskEnabled($account, 'spoof_junk');
 
-		$auth = CrmClientConnectorAntispamAuth::check($parsedHeaders, $fromAddress, CrmClientConnectorAntispamScanner::getAuthservIds());
-		$answer['result'] = $auth['result'];
-		$answer['detail'] = $auth['detail'];
-		$answer['known'] = $sender !== null;
-		$answer['spoof'] = $sender !== null && $auth['result'] === CrmClientConnectorAntispamAuth::RESULT_FAIL
-			&& (CrmClientConnectorAntispamImap::isTaskEnabled($account, 'spoof_inbox') || CrmClientConnectorAntispamImap::isTaskEnabled($account, 'spoof_junk'));
+		$sender = $fromAddress !== '' ? $whitelist->getSpoofSender($fromAddress, $account) : null;
+		if ($fromAddress !== '') {
+			$auth = CrmClientConnectorAntispamAuth::check($parsedHeaders, $fromAddress, CrmClientConnectorAntispamScanner::getAuthservIds());
+			$answer['result'] = $auth['result'];
+			$answer['detail'] = $auth['detail'];
+			$answer['known'] = $sender !== null;
+			$answer['spoof'] = $sender !== null && $auth['result'] === CrmClientConnectorAntispamAuth::RESULT_FAIL && $spoofTasks;
+		}
+		// Ambiguous From or display name written with the address of a known sender: same rule as the scheduled scan
+		if (!$answer['spoof'] && $spoofTasks) {
+			global $langs;
+			$langs->loadLangs(array('crmclientconnector@crmclientconnector'));
+			foreach ($impersonated as $address) {
+				$impersonatedSender = $whitelist->getSpoofSender($address, $account);
+				if ($impersonatedSender) {
+					$sender = $impersonatedSender;
+					$answer['known'] = true;
+					$answer['spoof'] = true;
+					$answer['result'] = CrmClientConnectorAntispamAuth::RESULT_FAIL;
+					$answer['detail'] = $langs->transnoentities($from['ambiguous'] ? 'AntispamImpersonationAmbiguousFrom' : 'AntispamImpersonationDisplayName', $address);
+					break;
+				}
+			}
+		}
 		if ($sender) {
 			$answer['thirdparty'] = $this->_antispamThirdparty($sender['socid']);
 			$answer['contact'] = $this->_antispamContact($sender['contactid']);
@@ -1740,7 +1736,8 @@ class CRMClientConnector extends DolibarrApi
 		$sql .= " ORDER BY date_log DESC";
 		$resql = $this->db->query($sql);
 		if (!$resql) {
-			throw new RestException(500, $this->db->lasterror());
+			dol_syslog(__METHOD__.' '.$this->db->lasterror(), LOG_ERR);
+			throw new RestException(500, 'Error when reading the anti-spam log');
 		}
 		$alerts = array();
 		while ($obj = $this->db->fetch_object($resql)) {
@@ -1817,8 +1814,76 @@ class CRMClientConnector extends DolibarrApi
 		if ($contactid <= 0) {
 			return null;
 		}
-		$obj = $this->db->getRow("SELECT firstname, lastname FROM ".$this->db->prefix()."socpeople WHERE rowid = ".((int) $contactid));
-		return $obj ? array('id' => (int) $contactid, 'name' => trim($obj->firstname.' '.$obj->lastname)) : null;
+		// Right to read the contacts, sales representative restricted to his thirdparties
+		if (!DolibarrApiAccess::$user->hasRight('societe', 'contact', 'lire') || !DolibarrApi::_checkAccessToResource('contact', $contactid, 'socpeople&societe')) {
+			return null;
+		}
+		$obj = $this->db->getRow("SELECT firstname, lastname, priv, fk_user_creat FROM ".$this->db->prefix()."socpeople WHERE rowid = ".((int) $contactid));
+		// Private contact of another user
+		if (!$obj || (!empty($obj->priv) && (int) $obj->fk_user_creat !== (int) DolibarrApiAccess::$user->id)) {
+			return null;
+		}
+		return array('id' => (int) $contactid, 'name' => trim($obj->firstname.' '.$obj->lastname));
+	}
+
+	/**
+	 * Copy the request data into an object, for the allowed fields only (plus extrafields and the caller). The other
+	 * posted fields (author, dates, ids, status...) are ignored, the object keeps its own values.
+	 *
+	 * @param	CommonObject			$object			Object to fill
+	 * @param	array<string,mixed>|null	$request_data	Request data
+	 * @param	string[]				$allowedFields	Fields that can be set by the caller
+	 * @return	void
+	 */
+	private function _assignRequestData($object, $request_data, $allowedFields)
+	{
+		foreach ((array) $request_data as $field => $value) {
+			if ($field === 'caller') {
+				// Add a mention of caller so on trigger called after action, we can filter to avoid a loop if we try to sync back again with the caller
+				$object->context['caller'] = sanitizeVal($value, 'aZ09');
+				continue;
+			}
+			if ($field === 'array_options' && is_array($value)) {
+				foreach ($value as $index => $val) {
+					$object->array_options[$index] = $this->_checkValForAPI('extrafields', $val, $object);
+				}
+				continue;
+			}
+			if (!in_array($field, $allowedFields, true)) {
+				continue;
+			}
+			$object->$field = $this->_checkValForAPI($field, $value, $object);
+		}
+	}
+
+	/**
+	 * Check the fields of an email link set from the request: existing email account, valid message-id
+	 *
+	 * @param	EmailLink	$emaillink	Email link
+	 * @return	void
+	 *
+	 * @throws RestException 400
+	 */
+	private function _checkEmailLinkData($emaillink)
+	{
+		$emailaccount = new EmailAccount($this->db);
+		if ((int) $emaillink->fk_email_account <= 0 || $emailaccount->fetch((int) $emaillink->fk_email_account) <= 0) {
+			throw new RestException(400, 'Invalid fk_email_account');
+		}
+		if (!crmclientconnectorIsValidMsgId((string) $emaillink->email_msgid)) {
+			throw new RestException(400, 'Invalid email_msgid');
+		}
+	}
+
+	/**
+	 * Can the API user change or delete a note: only its author, or an administrator
+	 *
+	 * @param	EmailUserMsg	$emailusermsg	Note
+	 * @return	bool
+	 */
+	private function _canChangeEmailUserMsg($emailusermsg)
+	{
+		return !empty(DolibarrApiAccess::$user->admin) || (int) $emailusermsg->fk_user_creat === (int) DolibarrApiAccess::$user->id;
 	}
 
 	/**
@@ -1899,6 +1964,12 @@ class CRMClientConnector extends DolibarrApi
 		unset($object->canvas);
 		// Encrypted password of the anti-spam connection of an email account
 		unset($object->antispam_password);
+		// Connection of the anti-spam (login, server, last error): administrators only
+		if (empty(DolibarrApiAccess::$user->admin) && $object instanceof EmailAccount) {
+			foreach (array('antispam_auth_mode', 'antispam_login', 'antispam_imap_host', 'antispam_imap_port', 'antispam_imap_encryption', 'antispam_last_error') as $key) {
+				unset($object->$key);
+			}
+		}
 
 		// If object has lines, remove $db property
 		if (isset($object->lines) && is_array($object->lines) && count($object->lines) > 0) {

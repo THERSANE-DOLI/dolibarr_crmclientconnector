@@ -92,12 +92,19 @@ class InterfaceCRMClientConnectorTriggers extends DolibarrTriggers
 		$msgId = GETPOST('msgId', 'alpha');
 
 		if (empty($accountEmail) || empty($msgId)) {
-			$accountEmail = empty($_SESSION['crmclientconnector_pending_accountemail']) ? '' : $_SESSION['crmclientconnector_pending_accountemail'];
-			$msgId = empty($_SESSION['crmclientconnector_pending_msgid']) ? '' : $_SESSION['crmclientconnector_pending_msgid'];
+			// Link stashed by the create page of this same type of object, less than one hour ago
+			$pendingElement = empty($_SESSION['crmclientconnector_pending_element']) ? '' : $_SESSION['crmclientconnector_pending_element'];
+			$pendingDate = empty($_SESSION['crmclientconnector_pending_date']) ? 0 : (int) $_SESSION['crmclientconnector_pending_date'];
+			if ($pendingElement === $object->element && $pendingDate > dol_now() - 3600) {
+				$accountEmail = empty($_SESSION['crmclientconnector_pending_accountemail']) ? '' : $_SESSION['crmclientconnector_pending_accountemail'];
+				$msgId = empty($_SESSION['crmclientconnector_pending_msgid']) ? '' : $_SESSION['crmclientconnector_pending_msgid'];
+			}
 		}
 
 		unset($_SESSION['crmclientconnector_pending_accountemail']);
 		unset($_SESSION['crmclientconnector_pending_msgid']);
+		unset($_SESSION['crmclientconnector_pending_element']);
+		unset($_SESSION['crmclientconnector_pending_date']);
 
 		if (empty($accountEmail) || empty($msgId)) {
 			return 0;
@@ -108,6 +115,11 @@ class InterfaceCRMClientConnectorTriggers extends DolibarrTriggers
 		}
 
 		$emaillink = crmclientconnectorGetOrCreateEmailLink($this->db, $user, $accountEmail, $msgId);
+		if ($emaillink === -2) {
+			// Not a valid address / message-id: the document is created without link (never block its creation)
+			dol_syslog(__METHOD__.' invalid accountEmail or msgId, document not linked to a mail', LOG_WARNING);
+			return 0;
+		}
 		if (!is_object($emaillink)) {
 			$this->errors[] = 'Failed to get or create EmailLink for accountEmail='.$accountEmail.' msgId='.$msgId;
 			return -1;

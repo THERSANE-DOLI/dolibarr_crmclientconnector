@@ -91,10 +91,14 @@ function crmclientconnectorAntispamAnswer($data, $httpCode = 200)
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 	crmclientconnectorAntispamAnswer(array('success' => false, 'error' => 'Bad method'), 405);
 }
+if ($user->socid > 0) {
+	crmclientconnectorAntispamAnswer(array('success' => false, 'error' => 'Not allowed'), 403);
+}
 if (!CrmClientConnectorAntispamImap::isEnabled()) {
 	crmclientconnectorAntispamAnswer(array('success' => false, 'error' => 'Feature disabled'), 403);
 }
-if (!$user->admin && !$user->hasRight('crmclientconnector', 'emailaccount', 'write')) {
+// Activation of the scan = the scheduled job opens the mailbox: administrators only (see emailaccount_antispam.php)
+if (empty($user->admin)) {
 	crmclientconnectorAntispamAnswer(array('success' => false, 'error' => $langs->transnoentitiesnoconv('NotEnoughPermissions')), 403);
 }
 

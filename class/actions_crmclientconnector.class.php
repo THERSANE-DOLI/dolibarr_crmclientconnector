@@ -97,8 +97,13 @@ class ActionsCRMClientConnector extends CommonHookActions
 		$msgId = GETPOST('msgId', 'alpha');
 
 		if (!empty($accountEmail) && !empty($msgId)) {
+			// Kept for the creation of this type of object only, and for a limited time: the pending link must not be
+			// used by an unrelated creation later (ex: a link to a create page opened by mistake, then another document)
+			$elements = array('propalcard' => 'propal', 'ordercard' => 'commande', 'ticketcard' => 'ticket', 'actioncard' => 'action');
 			$_SESSION['crmclientconnector_pending_accountemail'] = $accountEmail;
 			$_SESSION['crmclientconnector_pending_msgid'] = $msgId;
+			$_SESSION['crmclientconnector_pending_element'] = $elements[$parameters['currentcontext']];
+			$_SESSION['crmclientconnector_pending_date'] = dol_now();
 		}
 
 		return 0;

@@ -138,6 +138,9 @@ if (!$sortorder) {
 	$sortorder = "ASC";
 }
 
+// The anti-spam fields (connection of the mailbox, password...) are neither searchable nor shown in this list
+$object->removeAntispamFields();
+
 // Initialize array of search criteria
 $search_all = trim(GETPOST('search_all', 'alphanohtml'));
 $search = array();

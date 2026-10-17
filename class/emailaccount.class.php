@@ -302,6 +302,12 @@ class EmailAccount extends CommonObject
 		unset($object->id);
 		unset($object->fk_user_creat);
 		unset($object->import_key);
+		// Never copy the anti-spam settings of the mailbox (connection, password, owner): the copy starts with the anti-spam off
+		foreach (self::getAntispamFieldKeys() as $key) {
+			$object->$key = null;
+		}
+		$object->antispam_active = 0;
+		$object->antispam_auth_mode = 'master';
 
 		// Clear fields
 		if (property_exists($object, 'ref')) {
@@ -488,7 +494,45 @@ class EmailAccount extends CommonObject
 	 */
 	public function update(User $user, $notrigger = 0)
 	{
+		// Anti-spam: in master user mode the login of the mailbox is its address. A new address set by a user who is not
+		// an administrator stops the scan of this mailbox, until an administrator enables it again.
+		if (empty($user->admin) && !empty($this->id) && !empty($this->antispam_active)) {
+			$obj = $this->db->getRow("SELECT email_account FROM ".$this->db->prefix().$this->table_element." WHERE rowid = ".((int) $this->id));
+			if (is_object($obj) && (string) $obj->email_account !== (string) $this->email_account) {
+				$this->antispam_active = 0;
+				if (!isset($this->fields['antispam_active'])) {
+					// Field removed from the generic card (removeAntispamFields()): saved directly
+					$this->db->query("UPDATE ".$this->db->prefix().$this->table_element." SET antispam_active = 0 WHERE rowid = ".((int) $this->id));
+				}
+			}
+		}
+
 		return $this->updateCommon($user, $notrigger);
+	}
+
+	/**
+	 * Fields of the anti-spam, managed only by the "Anti-spam" tab (connection, owner, password, state of the scan)
+	 *
+	 * @return string[]
+	 */
+	public static function getAntispamFieldKeys()
+	{
+		return array('fk_user', 'antispam_active', 'antispam_junk_folders', 'antispam_tasks', 'antispam_date_last_scan', 'antispam_last_error',
+			'antispam_auth_mode', 'antispam_login', 'antispam_password', 'antispam_imap_host', 'antispam_imap_port', 'antispam_imap_encryption');
+	}
+
+	/**
+	 * Remove the anti-spam fields from $this->fields, for the generic card and list (core/actions_addupdatedelete.inc.php
+	 * saves every posted field of $this->fields, even the hidden ones, and the list allows to search on every field).
+	 * Call it after the fetch: create() and update() then leave these columns unchanged.
+	 *
+	 * @return void
+	 */
+	public function removeAntispamFields()
+	{
+		foreach (self::getAntispamFieldKeys() as $key) {
+			unset($this->fields[$key]);
+		}
 	}
 
 	/**
@@ -549,7 +593,8 @@ class EmailAccount extends CommonObject
 	 */
 	public function setAntispamJunkFolders($folders)
 	{
-		$folders = array_values(array_unique(array_filter(array_map('strval', (array) $folders), 'strlen')));
+		dol_include_once('/crmclientconnector/class/antispamimap.class.php');
+		$folders = array_values(array_unique(array_filter(array_map('strval', (array) $folders), array('CrmClientConnectorAntispamImap', 'isSafeFolderPath'))));
 		$this->antispam_junk_folders = empty($folders) ? null : json_encode($folders);
 	}
 
@@ -814,10 +859,10 @@ class EmailAccount extends CommonObject
 			$datas['picto'] .= ' '.$this->getLibStatut(5);
 		}
 		if (property_exists($this, 'ref')) {
-			$datas['ref'] = '<br><b>'.$langs->trans('Ref').':</b> '.$this->ref;
+			$datas['ref'] = '<br><b>'.$langs->trans('Ref').':</b> '.dol_escape_htmltag((string) $this->ref);
 		}
 		if (property_exists($this, 'label')) {
-			$datas['ref'] = '<br>'.$langs->trans('Label').':</b> '.$this->label;
+			$datas['label'] = '<br><b>'.$langs->trans('Label').':</b> '.dol_escape_htmltag((string) $this->label);
 		}
 
 		return $datas;
@@ -926,7 +971,7 @@ class EmailAccount extends CommonObject
 		}
 
 		if ($withpicto != 2) {
-			$result .= $this->email_account;
+			$result .= dol_escape_htmltag((string) $this->email_account);
 		}
 
 		$result .= $linkend;

@@ -74,7 +74,10 @@ if (isset($user->socid) && $user->socid > 0) {
 }
 
 // Security check (enable the most restrictive one)
-//if ($user->socid > 0) accessforbidden();
+// External users: never (the email accounts and notes are internal data)
+if ($user->socid > 0) {
+	accessforbidden();
+}
 //if ($user->socid > 0) $socid = $user->socid;
 //if (!isModEnabled('crmclientconnector')) {
 //	accessforbidden('Module not enabled');

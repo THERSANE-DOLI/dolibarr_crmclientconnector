@@ -21,6 +21,12 @@
  *  \brief      Tab "Anti-spam" of an email account: activation, owner, junk folders, connection test
  */
 
+// Every action of this page needs the token, also in GET (scan, test, edit read the mailbox): with the default CSRF
+// level of Dolibarr 18, main.inc.php only checks the token of GET actions with some names (add, update, delete...)
+if (!defined('CSRFCHECK_WITH_TOKEN')) {
+	define('CSRFCHECK_WITH_TOKEN', '1');
+}
+
 // Load Dolibarr environment
 $res = 0;
 // Try main.inc.php into web root known defined into CONTEXT_DOCUMENT_ROOT (not always defined)
@@ -83,6 +89,10 @@ include DOL_DOCUMENT_ROOT.'/core/actions_fetchobject.inc.php'; // Must be includ
 
 $permissiontoread = $user->admin || $user->hasRight('crmclientconnector', 'emailaccount', 'read');
 $permissiontoadd = $user->admin || $user->hasRight('crmclientconnector', 'emailaccount', 'write');
+// Opening the mailbox (connection test, scan now, folders read on the server, activation of the scheduled scan) is
+// reserved to administrators: in master user mode the login follows the address of the email account, which a user
+// allowed to change the email accounts could point to any mailbox of the server
+$permissiontoconnect = !empty($user->admin);
 // The connection (server, connection mode, owner) is set by an administrator : the master password of the setup
 // or the password of the mailbox would be sent to the server set here
 $canSetConnection = !empty($user->admin);
@@ -91,6 +101,10 @@ if (!isModEnabled('crmclientconnector') || !CrmClientConnectorAntispamImap::isEn
 	accessforbidden();
 }
 if (!$permissiontoread || empty($object->id)) {
+	accessforbidden();
+}
+// External users: never (internal data)
+if ($user->socid > 0) {
 	accessforbidden();
 }
 
@@ -165,21 +179,21 @@ if (empty($reshook)) {
 		$action = 'edit_antispam';
 	}
 
-	if ($action == 'test' && $permissiontoadd) {
+	if ($action == 'test' && $permissiontoconnect) {
 		$testResult = $antispamImap->testConnection($object);
 		if ($testResult === null) {
-			setEventMessages($antispamImap->error, null, 'errors');
+			setEventMessages(dol_escape_htmltag($antispamImap->error), null, 'errors');
 		} else {
 			setEventMessages($langs->trans('AntispamConnectionOk', $testResult['duration']), null, 'mesgs');
 		}
 	}
 
-	if ($action == 'scan' && $permissiontoadd) {
+	if ($action == 'scan' && $permissiontoconnect) {
 		// Same scan as the scheduled job, for this mailbox only (even if its anti-spam is off, to try it)
 		$scanner = new CrmClientConnectorAntispamScanner($db);
 		$stats = $scanner->scanAccount($object);
 		if ($stats === null) {
-			setEventMessages($scanner->error, null, 'errors');
+			setEventMessages(dol_escape_htmltag($scanner->error), null, 'errors');
 		} else {
 			setEventMessages(CrmClientConnectorAntispamScanner::getSummary($stats), null, 'mesgs');
 		}
@@ -187,7 +201,7 @@ if (empty($reshook)) {
 		exit;
 	}
 
-	if ($action == 'edit_antispam' && $permissiontoadd) {
+	if ($action == 'edit_antispam' && $permissiontoadd && $permissiontoconnect) {
 		// Folders read on the server for the pick list, the form stays usable without them
 		$client = $antispamImap->connect($object);
 		if ($client) {
@@ -195,7 +209,7 @@ if (empty($reshook)) {
 			$client->disconnect();
 		}
 		if ($serverFolders === null) {
-			setEventMessages($langs->trans('AntispamFoldersNotRead').' '.$antispamImap->error, null, 'warnings');
+			setEventMessages($langs->trans('AntispamFoldersNotRead').' '.dol_escape_htmltag($antispamImap->error), null, 'warnings');
 		}
 	}
 }
@@ -292,7 +306,9 @@ if ($action == 'edit_antispam' && $permissiontoadd) {
 	if (is_array($serverFolders)) {
 		$suggested = array();
 		foreach ($serverFolders as $folder) {
-			if (!$folder['selectable'] || strtoupper($folder['path']) === 'INBOX') {
+			// The path is the value of an HTML option (not escaped by Form::multiselectarray()): never a path with
+			// quotes or angle brackets, the name of a folder is chosen by the owner of the mailbox
+			if (!$folder['selectable'] || strtoupper($folder['path']) === 'INBOX' || !CrmClientConnectorAntispamImap::isSafeFolderPath($folder['path'])) {
 				continue;
 			}
 			$options[$folder['path']] = $folder['name'];
@@ -307,7 +323,7 @@ if ($action == 'edit_antispam' && $permissiontoadd) {
 	}
 	// Keep the chosen folders even if they are not found (any more) on the server
 	foreach ($selectedFolders as $path) {
-		if (!isset($options[$path])) {
+		if (!isset($options[$path]) && CrmClientConnectorAntispamImap::isSafeFolderPath($path)) {
 			$options[$path] = CrmClientConnectorAntispamImap::decodeFolderName($path).(is_array($serverFolders) ? ' ('.$langs->trans('AntispamFolderNotFound').')' : '');
 		}
 	}
@@ -350,7 +366,7 @@ if ($action == 'edit_antispam' && $permissiontoadd) {
 	print '<table class="border centpercent tableforfield">';
 
 	print '<tr><td class="titlefield">'.$langs->trans('AntispamActive').'</td><td>';
-	if ($permissiontoadd) {
+	if ($permissiontoconnect) {
 		print '<span class="crmcc-antispam-switch cursorpointer"';
 		print ' data-url="'.dol_escape_htmltag(dol_buildpath('/crmclientconnector/ajax/antispam.php', 1)).'"';
 		print ' data-id="'.((int) $object->id).'" data-token="'.currentToken().'" data-value="'.(empty($object->antispam_active) ? 0 : 1).'"';
@@ -367,9 +383,12 @@ if ($action == 'edit_antispam' && $permissiontoadd) {
 	print $langs->trans(CrmClientConnectorAntispamImap::getAuthMode($object) == 'login' ? 'AntispamAuthModeLogin' : 'AntispamAuthModeMaster');
 	print '</td></tr>';
 
-	print '<tr><td>'.$langs->trans('AntispamImapLogin').'</td><td>';
-	print '<span class="opacitymedium">'.dol_escape_htmltag(CrmClientConnectorAntispamImap::getLogin($object)).'</span>';
-	print '</td></tr>';
+	// The login holds the name of the Dovecot master user: administrators only
+	if ($permissiontoconnect) {
+		print '<tr><td>'.$langs->trans('AntispamImapLogin').'</td><td>';
+		print '<span class="opacitymedium">'.dol_escape_htmltag(CrmClientConnectorAntispamImap::getLogin($object)).'</span>';
+		print '</td></tr>';
+	}
 
 	$server = CrmClientConnectorAntispamImap::getServer($object);
 	print '<tr><td>'.$langs->trans('AntispamImapServer').'</td><td>';
@@ -447,8 +466,8 @@ print dol_get_fiche_end();
 if ($action != 'edit_antispam') {
 	print '<div class="tabsAction">';
 	print dolGetButtonAction('', $langs->trans('Modify'), 'default', $_SERVER['PHP_SELF'].'?id='.$object->id.'&action=edit_antispam&token='.newToken(), '', $permissiontoadd);
-	print dolGetButtonAction('', $langs->trans('AntispamScanNow'), 'default', $_SERVER['PHP_SELF'].'?id='.$object->id.'&action=scan&token='.newToken(), '', $permissiontoadd && $configurationError === '');
-	print dolGetButtonAction('', $langs->trans('AntispamTestConnection'), 'default', $_SERVER['PHP_SELF'].'?id='.$object->id.'&action=test&token='.newToken(), '', $permissiontoadd && $configurationError === '');
+	print dolGetButtonAction($langs->trans('AntispamReservedToAdmin'), $langs->trans('AntispamScanNow'), 'default', $_SERVER['PHP_SELF'].'?id='.$object->id.'&action=scan&token='.newToken(), '', $permissiontoconnect && $configurationError === '');
+	print dolGetButtonAction($langs->trans('AntispamReservedToAdmin'), $langs->trans('AntispamTestConnection'), 'default', $_SERVER['PHP_SELF'].'?id='.$object->id.'&action=test&token='.newToken(), '', $permissiontoconnect && $configurationError === '');
 	print '</div>';
 }
 

@@ -1,5 +1,104 @@
 # CHANGELOG CRMCLIENTCONNECTOR FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
+## 1.5.19
+
+- FIX: REST API: a sales representative restricted to his thirdparties got an HTTP 403 when reading, changing or
+  deleting an email account, a link or a note by its id (even his own note, from DoliConnector): the check of the
+  thirdparty was made on tables that have no thirdparty. The rights of the module (and the author of a note) are
+  the access rule of these objects.
+
+## 1.5.18
+
+- FIX: hardening of the REST API:
+  - documents linked to a mail: a project is only listed, linked or unlinked when the user is allowed on it, a
+    link can only be removed for a document the user can see, and the categories of a document need the access to
+    the document itself
+  - GET emailusermsgs with accountEmail and msgId returned the notes of all the mails, it now returns the notes of
+    this mail only
+  - email accounts: the anti-spam connection (login, server, last error) is only returned to administrators, the
+    encrypted password never, and the list can no longer be filtered on the anti-spam fields nor the owner
+  - the SQL errors are written in the log instead of being returned to the caller
+
+## 1.5.17
+
+- FIX: hardening of the pages and of the anti-spam:
+  - external users (users of a thirdparty) can no longer open the email accounts, notes, anti-spam pages and the
+    home page of the module (only the two lists refused them)
+  - sending an email from the card of an email account or of a note needs the right to change it, and a copy of an
+    email account no longer copies its anti-spam settings (connection, password, owner)
+  - anti-spam tab: IMAP folders whose path holds quotes or angle brackets are left out of the pick list and never
+    saved, and the IMAP error messages are escaped
+  - DKIM / SPF alignment: a top level domain alone (ex: « fr ») is never aligned with the sender domain
+
+## 1.5.16
+
+- FIX: the mail to link, kept when a create page is opened from DoliConnector (accountEmail, msgId), was used by the
+  next creation of any proposal, order, ticket or event, even much later: a link to a create page sent to a user
+  attached his next document to a mail chosen by the sender. It is now used only by the creation of the same type
+  of document, within one hour, and an invalid address or message-id no longer prevents the creation of the
+  document.
+
+## 1.5.15
+
+- FIX: CSRF on the « Anti-spam » tab of an email account with Dolibarr 18: the scan now, connection test and edition
+  could be run by a link or an image without the security token (the default CSRF level of Dolibarr 18 only checks
+  the token of GET actions with some names). Every action of the tab now needs the token.
+
+## 1.5.14
+
+- FIX: REST API antispam/check: the name of the contact whose address is spoofed was returned without checking the
+  right to read the contacts, the restriction of a sales representative to his thirdparties nor the private contacts
+  of the other users. The spoofing alert is still given, without the name of a contact the user can't see.
+
+## 1.5.13
+
+- FIX: notes on mails and links between mails and documents: the REST API copied every posted field into the object,
+  so a note could be given another author or date, or moved to another mail, and a link to another mailbox. Any user
+  allowed to change or delete the notes could also change or delete the notes of the other users.
+  - REST API: only the text and the mail of a note, the mailbox and message-id of a link are read (checked), the
+    other posted fields are ignored
+  - a note can only be changed or deleted by its author or an administrator (REST API, card, mass delete of the
+    list), like in the DoliConnector extension
+  - the update of an email account or of a link no longer ends with an HTTP 500 although it was saved, and deleting
+    an email account, a link or a note no longer runs the deletion twice
+
+## 1.5.12
+
+- FIX: anti-spam: with the Dovecot master user, the login of a mailbox is its address, so a user allowed to change
+  the email accounts could have any mailbox of the server opened (folders, scan, log) by changing the address.
+  Opening the mailbox (connection test, scan now, folders read on the server, activation) is now reserved to
+  administrators, a new address set by another user stops the scan of the mailbox until an administrator enables it
+  again, and the IMAP login (which holds the name of the master user) is only shown to administrators.
+
+## 1.5.11
+
+- FIX: stored XSS: linking a mail to a document through the REST API created the email account with the address
+  sent by the client, without checking it, and the list of the email accounts showed it as is. The address must
+  now be a valid email and the message-id must not hold spaces nor HTML characters (HTTP 400 otherwise), and the
+  address, reference and label of the email accounts, links and notes are escaped in their links and tooltips.
+
+## 1.5.10
+
+- FIX: anti-spam: the sender of an email was read in the display name or in a comment of the From header, so an
+  email of an attacker could be taken out of junk as the one of a customer (« "<client@gmail.com>"
+  <attacker@gmail.com> ») and a spoofed email could escape the spoofing alert. The headers are now read with their
+  quoted strings and comments:
+  - the sender is only the real address of the From header; several From headers or several addresses: never
+    taken out of junk, and flagged as spoofing when one of them is a known sender
+  - a display name holding the address of a known sender, other than the real address, is flagged as spoofing
+  - Authentication-Results: a ';' or a '(' inside quotes no longer splits the results (forged envelope sender),
+    unclosed quotes or comments, a duplicate spf or dmarc result and dmarc=pass without header.from are failures
+  - Received-SPF: keys read one by one (a HELO holding « envelope-from= » is ignored), identity must be mailfrom;
+    hidden option CRMCLIENTCONNECTOR_ANTISPAM_DISABLE_RECEIVED_SPF to never use this header
+  - same rules for the check of the DoliConnector extension (REST API antispam/check)
+
+## 1.5.9
+
+- FIX: the card of an email account saved the anti-spam fields posted with it (server, connection mode, owner,
+  password...), although they are hidden and reserved to the « Anti-spam » tab: a user allowed to change the email
+  accounts could set his own server and receive the password of the Dovecot master user when testing the
+  connection. These fields are no longer saved by the card, nor searchable in the list.
+
 ## 1.5.8
 
 - FIX: the home page of the module did not check any right: one of the rights to read the email accounts, the

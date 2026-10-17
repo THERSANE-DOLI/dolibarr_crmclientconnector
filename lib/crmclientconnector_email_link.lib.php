@@ -22,6 +22,29 @@
  */
 
 /**
+ * Is a value usable as the address of an email account (sent by the email client)
+ *
+ * @param	string	$accountEmail	Address
+ * @return	bool
+ */
+function crmclientconnectorIsValidAccountEmail($accountEmail)
+{
+	$accountEmail = (string) $accountEmail;
+	return strlen($accountEmail) <= 255 && isValidEmail($accountEmail) && !preg_match('/[<>"\'\s]/', $accountEmail);
+}
+
+/**
+ * Is a value usable as the Message-Id of an email (sent by the email client, without < >)
+ *
+ * @param	string	$msgId	Message-Id
+ * @return	bool
+ */
+function crmclientconnectorIsValidMsgId($msgId)
+{
+	return (bool) preg_match('/^[^\s<>"\'\\\\]{1,255}$/', (string) $msgId);
+}
+
+/**
  * Find the EmailLink matching an account email + a message-id, creating the EmailAccount
  * and/or the EmailLink if they don't exist yet. Shared between the PROPAL_CREATE/ORDER_CREATE
  * trigger (auto-link on creation from the Thunderbird popup) and the manual link/unlink API
@@ -32,7 +55,7 @@
  * @param	User	$user			User doing the create (used as fk_user_creat if a row must be created)
  * @param	string	$accountEmail	Email address of the mailbox owning the message
  * @param	string	$msgId			Message-Id of the mail
- * @return	EmailLink|int			EmailLink object, or <0 if KO
+ * @return	EmailLink|int			EmailLink object, -2 if the address or the message-id is not valid, -1 if KO
  */
 function crmclientconnectorGetOrCreateEmailLink($db, $user, $accountEmail, $msgId)
 {
@@ -41,6 +64,11 @@ function crmclientconnectorGetOrCreateEmailLink($db, $user, $accountEmail, $msgI
 
 	if (empty($accountEmail) || empty($msgId)) {
 		return -1;
+	}
+	// The address and the message-id come from the email client (REST API, URL of the card): an email account may be
+	// created with them, so only a real address and a message-id without spaces nor HTML characters are accepted
+	if (!crmclientconnectorIsValidAccountEmail($accountEmail) || !crmclientconnectorIsValidMsgId($msgId)) {
+		return -2;
 	}
 
 	$emailaccount = new EmailAccount($db);

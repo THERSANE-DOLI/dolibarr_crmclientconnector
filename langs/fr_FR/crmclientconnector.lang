@@ -179,3 +179,7 @@ AntispamLogPurged = %s ligne(s) ancienne(s) supprimée(s) du journal
 Permission14191161 = Gérer la liste blanche / noire de l'anti-spam
 AntispamActionSpoof = Usurpation possible
 AntispamScanSummarySpoof = %s usurpation(s) signalée(s)
+AntispamImpersonationAmbiguousFrom = plusieurs expéditeurs dans le mail, dont l'adresse %s
+AntispamImpersonationDisplayName = le nom affiché de l'expéditeur contient l'adresse %s, qui n'est pas la vraie adresse d'envoi
+AntispamReservedToAdmin = Réservé aux administrateurs
+CrmClientConnectorOnlyOwnNotes = Seules vos propres notes peuvent être supprimées : les notes des autres utilisateurs ont été ignorées.
