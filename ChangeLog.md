@@ -1,5 +1,12 @@
 # CHANGELOG CRMCLIENTCONNECTOR FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
+## 1.7.0
+
+- NEW: German, Italian and Spanish translations, Dutch translation completed: every key of the module (anti-spam
+  included) in the 6 languages en_US, fr_FR, de_DE, it_IT, es_ES and nl_NL
+  - same vocabulary everywhere: « notes » on emails (instead of « email user messages »), « comptes mail » in
+    French, links between emails and documents
+
 ## 1.6.0
 
 - NEW: Dutch translation (langs/nl_NL)

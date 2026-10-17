@@ -1,12 +1,13 @@
 # Translation file - nl_NL
-# CRM Client Connector
 
 #
 # Generic
 #
+
+# Module label 'ModuleCRMClientConnectorName'
 ModuleCRMClientConnectorName = CRM Client Connector
+# Module description 'ModuleCRMClientConnectorDesc'
 ModuleCRMClientConnectorDesc = Voegt API's en hulpmiddelen toe voor koppelingen met externe toepassingen, zoals Thunderbird.
-CRMClientConnectorDescription = Voegt API's en hulpmiddelen toe voor koppelingen met externe toepassingen, zoals Thunderbird.
 
 #
 # Admin page
@@ -16,6 +17,7 @@ Settings = Instellingen
 CRMClientConnectorSetupPage = Instellingenpagina CRM Client Connector
 NewSection = Nieuwe sectie
 
+
 #
 # About page
 #
@@ -23,43 +25,13 @@ About = Over
 CRMClientConnectorAbout = Over CRM Client Connector
 CRMClientConnectorAboutPage = Informatiepagina CRM Client Connector
 
-#
-# Menus
-#
 CRMClientConnectorArea = Startpagina CRM Client Connector
-CRMClientConnectorMenu = CRM-koppeling e-mail
-ListOfEmailAccounts = Lijst e-mailaccounts
-NewEmailAccount = Nieuw e-mailaccount
-
-#
-# Objects
-#
 EmailAccounts = E-mailaccounts
 EmailAccount = E-mailaccount
-ShowEmailAccount = E-mailaccount tonen
-DeleteEmailAccount = E-mailaccount verwijderen
-ConfirmActionEmailAccount = Weet u zeker dat u deze actie wilt uitvoeren op e-mailaccount %s?
-EmailLink = E-mailkoppeling
-ShowEmailLink = E-mailkoppeling tonen
-EmailMessage = E-mailbericht
-EmailUserMsg = Gebruikersbericht bij e-mail
-EmailUserMsgs = Gebruikersberichten bij e-mail
-ShowEmailUserMsg = Gebruikersbericht tonen
-DeleteEmailUserMsg = Gebruikersbericht verwijderen
-ConfirmActionEmailUserMsg = Weet u zeker dat u deze actie wilt uitvoeren op gebruikersbericht %s?
-ErrorNumberingModuleNotSetup = Fout: nummeringsmodule niet ingesteld voor object %s
-
-#
-# Dictionary
-#
 ExcludedMailDomains = Uitgesloten e-maildomeinen
 DomainTooltipHelp = E-maildomeinen die worden overgeslagen bij het zoeken naar relaties op basis van het e-maildomein (bijv. gmail.com, hotmail.com)
 ThisModuleAddNewDictionary = Deze module voegt een nieuw woordenboek toe
 ThisModuleAddNewDictionaryDesc = Zie de pagina Woordenboeken
-
-#
-# Setup page texts
-#
 ThisModuleAddObjectEmailAccount = Lijst van e-mailaccounts die verbinding mogen maken
 ThisModuleAddObjectEmailAccountLink = Pagina openen
 ThisModuleAddObjectEmailAccountDesc = Deze lijst bepaalt welke e-mailaccounts met de Dolibarr-API's mogen werken. De Thunderbird-add-on "Thunderbird Dolibarr Connector" gebruikt deze lijst bijvoorbeeld om te bepalen of hij de optie toont om een notitie en/of opmerking aan een e-mail toe te voegen.
@@ -67,15 +39,195 @@ NewUsersRightsForCRMClientConnector = Nieuwe gebruikersrechten
 NewUsersRightsForCRMClientConnectorDesc = Vergeet niet de juiste rechten toe te kennen aan gebruikers die via een externe toepassing, zoals de Thunderbird Dolibarr Connector, met Dolibarr verbinden.
 
 #
-# Permissions
+# Anti-spam IMAP
 #
-Permission14191101 = E-mailkoppelingen inzien
-Permission14191102 = E-mailkoppelingen aanmaken/wijzigen
-Permission14191103 = E-mailkoppelingen verwijderen
+AntispamImap = IMAP-antispam
+Antispam = Antispam
+AntispamOn = actief
+AntispamSetupDesc = Zet e-mails van uw klanten en leveranciers die als ongewenst zijn aangemerkt terug in het Postvak IN wanneer de afzender geauthenticeerd is (DMARC, DKIM of SPF), en markeert vervalste afzenders. Elke mailbox wordt geactiveerd in het tabblad "Antispam" van het e-mailaccount.
+AntispamEnable = IMAP-antispam inschakelen
+AntispamImapConnection = IMAP-verbinding
+AntispamImapHost = Standaard IMAP-server
+AntispamImapPort = Poort
+AntispamImapEncryption = Versleuteling
+AntispamEncryptionSsl = SSL / TLS (poort 993)
+AntispamEncryptionStartTls = STARTTLS (poort 143)
+AntispamEncryptionNone = Geen (afgeraden)
+AntispamImapValidateCert = Certificaat van de server controleren
+AntispamImapValidateCertHelp = Alleen uitschakelen voor een testserver met een zelfondertekend certificaat.
+AntispamMasterUser = Masteraccount
+AntispamMasterUserHelp = Masteraccount gedefinieerd in Dovecot: opent elke mailbox zonder het wachtwoord ervan te kennen.
+AntispamMasterPassword = Wachtwoord van het masteraccount
+AntispamPasswordKeep = Leeg laten om het opgeslagen wachtwoord te behouden
+AntispamPasswordSaved = Wachtwoord opgeslagen (versleuteld)
+AntispamDeletePassword = Opgeslagen wachtwoord verwijderen
+AntispamConfirmDeletePassword = Wachtwoord van het masteraccount verwijderen? De antispam kan dan geen verbinding meer maken met de mailboxen.
+AntispamPasswordDeleted = Wachtwoord verwijderd
+AntispamMasterSeparator = Scheidingsteken
+AntispamMasterSeparatorHelp = Teken tussen het adres van de mailbox en het masteraccount (Dovecot-optie auth_master_user_separator).
+AntispamLoginExample = Voorbeeld van een login
+AntispamErrorSeparatorInMasterUser = De naam van het masteraccount mag het scheidingsteken "%s" niet bevatten.
+AntispamServerPrerequisites = Vereisten op de mailserver
+AntispamServerPrerequisitesDesc = Definieer het masteraccount eenmalig op de Dovecot-server (bijvoorbeeld Plesk):
+AntispamServerStepHash = De hash van het wachtwoord genereren:
+AntispamServerStepFile = Het bestand /etc/dovecot/master-users aanmaken (eigenaar root:dovecot, rechten 640):
+AntispamDolibarrServerIp = IP van de Dolibarr-server
+AntispamServerStepConf = Een configuratiebestand toevoegen in /etc/dovecot/conf.d/:
+AntispamServerStepReload = Dovecot herladen:
+AntispamServerSecurity = Het masteraccount opent elke mailbox: beperk het tot het IP-adres van de Dolibarr-server (allow_nets) en open de IMAP-poort alleen voor dit adres.
+AntispamGoToSetup = Instellingen openen
+AntispamErrorBadMailbox = Ongeldig mailboxadres: %s
+AntispamErrorAuthFailed = Aanmelding geweigerd door de IMAP-server: controleer het masteraccount, het wachtwoord en het toegestane IP-adres (allow_nets).
+AntispamErrorConnection = IMAP-verbinding mislukt: %s
+AntispamErrorCertificate = Het certificaat van de IMAP-server is geweigerd (verlopen, zelfondertekend of andere servernaam). Controleer de servernaam: die moet overeenkomen met het certificaat.
+AntispamErrorToggle = De antispam kon niet worden gewijzigd.
+AntispamActive = Antispam actief voor deze mailbox
+AntispamImapLogin = IMAP-login
+AntispamMailboxOwner = Medewerker
+AntispamMailboxOwnerHelp = Dolibarr-gebruiker die het logboek van deze mailbox kan inzien.
+AntispamJunkFolders = Mappen met ongewenste e-mail
+AntispamJunkFoldersHelp = Mappen waarin de server of het e-mailprogramma ongewenste e-mails plaatst (meestal INBOX/Spam of INBOX/Junk). E-mails van geauthenticeerde klanten en leveranciers worden daaruit teruggehaald.
+AntispamChooseFolders = Mappen kiezen
+AntispamNoJunkFolder = Geen map gekozen
+AntispamFolderNotFound = niet gevonden op de server
+AntispamFoldersNotRead = De mappen van de mailbox konden niet worden gelezen.
+AntispamDateLastScan = Laatste controle
+AntispamNeverScanned = Nooit
+AntispamLastError = Laatste fout
+AntispamTestConnection = Verbinding testen
+AntispamConnectionOk = Verbinding gelukt (%s s)
+AntispamFoldersOnServer = Mappen van de mailbox
+AntispamFolder = Map
+AntispamNbMessages = Berichten
+AntispamFolderRole = Rol
+AntispamRoleJunkChosen = Ongewenst (gekozen)
+AntispamRoleInbox = Postvak IN
+AntispamRoleJunkServer = Ongewenst volgens de server
+AntispamImapConnectionDesc = Elke mailbox maakt verbinding met het Dovecot-masteraccount (geen mailboxwachtwoord nodig) of met een eigen login en wachtwoord, te kiezen in het tabblad "Antispam" van de mailbox.
+AntispamImapHostHelp = Server voor de mailboxen zonder eigen server.
+AntispamMasterSection = Dovecot-masteraccount (optioneel)
+AntispamMasterSectionHelp = Zonder masteraccount maakt elke mailbox verbinding met een eigen login en wachtwoord.
+AntispamServerPrerequisitesOnlyMaster = Alleen om het masteraccount te gebruiken.
+AntispamAuthMode = Verbindingswijze
+AntispamAuthModeMaster = Dovecot-masteraccount
+AntispamAuthModeLogin = Login en wachtwoord van de mailbox
+AntispamMasterNotConfigured = niet ingesteld
+AntispamLogin = Login
+AntispamPassword = Wachtwoord
+AntispamOwnServer = Eigen IMAP-server van de mailbox
+AntispamOwnServerHelp = Alleen invullen als deze mailbox niet op de standaardserver van de instellingen staat. Gebruik voor Gmail of Microsoft 365 een app-wachtwoord.
+AntispamConnectionAdminOnly = Alleen een beheerder kan de verbinding, de server en de eigenaar van de mailbox wijzigen
+AntispamDefaultServer = Standaardserver: %s
+AntispamServerFromSetup = standaardserver
+AntispamErrorNoServer = Geen IMAP-server: vul de standaardserver in de instellingen of de server van de mailbox in.
+AntispamErrorNoPassword = Het wachtwoord van de mailbox is niet ingevuld.
+AntispamErrorNoMaster = Het masteraccount is niet ingesteld: stel het in of kies de wijze "Login en wachtwoord van de mailbox".
+AntispamErrorAuthFailedLogin = Aanmelding geweigerd door de IMAP-server: controleer de login en het wachtwoord van de mailbox.
+AntispamImapServer = IMAP-server
+AntispamTasks = Taken van de antispam
+AntispamTasksDesc = Standaardwaarden voor alle mailboxen. Elke mailbox kan een taak aan- of uitzetten in het tabblad "Antispam".
+AntispamTaskGroupRescue = E-mails van bekende afzenders uit ongewenst halen (geauthenticeerd met DMARC, DKIM of SPF)
+AntispamTaskGroupSpoof = Vervalste afzenders markeren (bekende afzender, authenticatie mislukt), de e-mail wordt nooit verplaatst
+AntispamTaskRescueCustomers = Klanten
+AntispamTaskRescueCustomersHelp = E-mailadres van de actieve klanten (alleen-prospects zijn uitgesloten).
+AntispamTaskRescueSuppliers = Leveranciers
+AntispamTaskRescueSuppliersHelp = E-mailadres van de actieve leveranciers.
+AntispamTaskRescueContacts = Contactpersonen van deze relaties
+AntispamTaskRescueContactsHelp = Adressen van de actieve contactpersonen van de hierboven meegenomen klanten of leveranciers.
+AntispamTaskRescueManual = Handmatige witte lijst
+AntispamTaskRescueManualHelp = Adressen die handmatig aan de witte lijst van de antispam zijn toegevoegd.
+AntispamTaskMarkNotJunk = Teruggehaalde e-mails markeren als "geen ongewenste e-mail"
+AntispamTaskMarkNotJunkHelp = Voegt het sleutelwoord $NotJunk toe aan de e-mails die naar het Postvak IN zijn teruggezet: het spamfilter van Thunderbird leert van de fout.
+AntispamTaskSpoofJunk = In de mappen met ongewenste e-mail
+AntispamTaskSpoofJunkHelp = Zet de markering voor vervalsing, die de Thunderbird-extensie DoliConnector als waarschuwing toont.
+AntispamTaskSpoofInbox = In het Postvak IN
+AntispamTaskSpoofInboxHelp = Zet dezelfde markering op de e-mails die in het Postvak IN zijn aangekomen.
+AntispamTaskFollowSetup = Zoals in de instellingen (%s)
+AntispamTaskForcedOn = Ja voor deze mailbox
+AntispamTaskForcedOff = Nee voor deze mailbox
+AntispamTaskFromSetup = instellingen
+AntispamTaskForcedForMailbox = geforceerd voor deze mailbox
+AntispamAuthservIds = Identificatie van de ontvangende server
+AntispamAuthservIdsHelp = Naam van de server die de e-mails ontvangt, zoals die aan het begin van de header "Authentication-Results" van uw ontvangen e-mails staat (bijv. mail.example.com). Alleen deze header, toegevoegd door uw server, wordt vertrouwd. Meerdere servers: scheiden met komma's.
+AntispamWarningNoAuthservIds = De identificatie van de ontvangende server is niet ingevuld in de instellingen: geen enkele afzender kan worden geauthenticeerd, dus er wordt geen e-mail uit ongewenst gehaald.
+AntispamCronLabel = IMAP-antispam: controle van ongewenste e-mail
+AntispamCronComment = Zet e-mails van geauthenticeerde klanten en leveranciers die als ongewenst zijn aangemerkt terug in het Postvak IN (module CRM Client Connector).
+AntispamCronMissing = De geplande taak van de antispam is niet gevonden: schakel de module uit en weer in.
+AntispamCronDisabled = De geplande taak van de antispam is uitgeschakeld: schakel deze in zodat de mailboxen elke 5 minuten worden gecontroleerd.
+AntispamCronEnabled = De geplande taak van de antispam is ingeschakeld.
+AntispamCronOpen = Geplande taak bekijken
+AntispamScanDisabled = IMAP-antispam uitgeschakeld in de instellingen van de module.
+AntispamScanNoMailbox = Geen mailbox met actieve antispam.
+AntispamScanSummary = %s e-mail(s) gelezen, %s uit ongewenst gehaald, %s bekende afzender(s) niet geauthenticeerd, %s op de zwarte lijst
+AntispamScanNow = Nu controleren
+AntispamErrorFolder = Map %s: %s
+AntispamErrorFolderNotFound = De map %s is niet gevonden op de server.
+AntispamErrorMove = verplaatsen geweigerd door de server
+AntispamLog = Antispamlogboek
+AntispamSeeLog = Logboek van de mailbox bekijken
+AntispamLogDescAll = E-mails van bekende afzenders die de antispam in alle mailboxen heeft behandeld: uit ongewenst gehaald, gelaten, op de zwarte lijst of als vervalsing gemarkeerd.
+AntispamLogDescOwn = E-mails van bekende afzenders die de antispam in uw mailboxen heeft behandeld (waarvan u de medewerker bent): uit ongewenst gehaald, gelaten, op de zwarte lijst of als vervalsing gemarkeerd.
+AntispamSender = Afzender
+AntispamLogAction = Resultaat
+AntispamAuthentication = Authenticatie
+AntispamActionRescued = Uit ongewenst gehaald
+AntispamActionNotRescued = In ongewenst gelaten
+AntispamAuthPass = Geauthenticeerd
+AntispamAuthFail = Niet geauthenticeerd
+AntispamAuthUnknown = Niet controleerbaar
+Permission14191151 = Het antispamlogboek lezen van de mailboxen waarvan de gebruiker de medewerker is
+Permission14191152 = Het antispamlogboek van alle mailboxen lezen
+AntispamSubject = Onderwerp
+AntispamRules = Witte / zwarte lijst van de antispam
+AntispamRulesDesc = Exacte adressen die handmatig zijn toegevoegd. Witte lijst: de e-mails van het adres worden uit ongewenst gehaald zoals die van een bekende klant, altijd alleen als de afzender geauthenticeerd is (taak "Handmatige witte lijst"). Zwarte lijst: de e-mails van het adres worden nooit uit ongewenst gehaald, ook niet voor een klant of leverancier.
+AntispamRuleType = Lijst
+AntispamRuleWhite = Witte lijst
+AntispamRuleBlack = Zwarte lijst
+AntispamAllMailboxes = Alle mailboxen
+AntispamRuleAdded = %s toegevoegd aan de %s
+AntispamRuleDelete = Regel verwijderen
+AntispamRuleConfirmDelete = Dit adres uit de lijst verwijderen?
+AntispamActionBlocked = Zwarte lijst
+AntispamAuthNotChecked = Niet gecontroleerd
+AntispamAddToWhitelist = Afzender aan de witte lijst toevoegen
+AntispamAddToBlacklist = Afzender aan de zwarte lijst toevoegen
+AntispamLogRetention = Bewaartermijn van het logboek
+AntispamLogRetentionHelp = Oudere regels van het logboek worden door de geplande taak verwijderd. 0: alles bewaren.
+AntispamLogPurged = %s oude regel(s) uit het logboek verwijderd
+Permission14191161 = De witte / zwarte lijst van de antispam beheren
+AntispamActionSpoof = Mogelijke vervalsing
+AntispamScanSummarySpoof = %s vervalsing(en) gemarkeerd
+AntispamImpersonationAmbiguousFrom = meerdere afzenders in de e-mail, waaronder het adres %s
+AntispamImpersonationDisplayName = de weergavenaam van de afzender bevat het adres %s, dat niet het echte verzendadres is
+AntispamReservedToAdmin = Voorbehouden aan beheerders
+CrmClientConnectorOnlyOwnNotes = Alleen uw eigen notities kunnen worden verwijderd: de notities van de andere gebruikers zijn overgeslagen.
+
+#
+# Menus, objects and permissions (contribution of RealRidrick, PR #2)
+#
+CRMClientConnectorDescription = Voegt API's en hulpmiddelen toe voor koppelingen met externe toepassingen, zoals Thunderbird.
+CRMClientConnectorMenu = CRM-koppeling e-mail
+ListOfEmailAccounts = Lijst e-mailaccounts
+NewEmailAccount = Nieuw e-mailaccount
+ShowEmailAccount = E-mailaccount tonen
+DeleteEmailAccount = E-mailaccount verwijderen
+ConfirmActionEmailAccount = Weet u zeker dat u deze actie wilt uitvoeren op e-mailaccount %s?
+EmailLink = Koppeling tussen een e-mail en documenten
+ShowEmailLink = Koppeling tonen
+EmailMessage = E-mail
+EmailUserMsg = Notitie bij een e-mail
+EmailUserMsgs = Notities bij e-mails
+ShowEmailUserMsg = Notitie tonen
+DeleteEmailUserMsg = Notitie verwijderen
+ConfirmActionEmailUserMsg = Weet u zeker dat u deze actie wilt uitvoeren op notitie %s?
+ErrorNumberingModuleNotSetup = Fout: nummeringsmodule niet ingesteld voor object %s
+Permission14191101 = Koppelingen tussen e-mails en documenten inzien
+Permission14191102 = Koppelingen tussen e-mails en documenten aanmaken/wijzigen
+Permission14191103 = Koppelingen tussen e-mails en documenten verwijderen
 Permission14191111 = E-mailaccounts inzien
 Permission14191112 = E-mailaccounts aanmaken/wijzigen
 Permission14191113 = E-mailaccounts verwijderen
-Permission14191131 = Gebruikersberichten bij e-mail inzien
-Permission14191132 = Gebruikersberichten bij e-mail aanmaken/wijzigen
-Permission14191133 = Gebruikersberichten bij e-mail verwijderen
+Permission14191131 = Notities bij e-mails inzien
+Permission14191132 = Notities bij e-mails aanmaken/wijzigen
+Permission14191133 = Notities bij e-mails verwijderen
 Permission14191141 = Uitgesloten e-maildomeinen inzien
