@@ -839,10 +839,10 @@ class EmailAccount extends CommonObject
 			$datas['picto'] .= ' '.$this->getLibStatut(5);
 		}
 		if (property_exists($this, 'ref')) {
-			$datas['ref'] = '<br><b>'.$langs->trans('Ref').':</b> '.$this->ref;
+			$datas['ref'] = '<br><b>'.$langs->trans('Ref').':</b> '.dol_escape_htmltag((string) $this->ref);
 		}
 		if (property_exists($this, 'label')) {
-			$datas['ref'] = '<br>'.$langs->trans('Label').':</b> '.$this->label;
+			$datas['label'] = '<br><b>'.$langs->trans('Label').':</b> '.dol_escape_htmltag((string) $this->label);
 		}
 
 		return $datas;
@@ -951,7 +951,7 @@ class EmailAccount extends CommonObject
 		}
 
 		if ($withpicto != 2) {
-			$result .= $this->email_account;
+			$result .= dol_escape_htmltag((string) $this->email_account);
 		}
 
 		$result .= $linkend;

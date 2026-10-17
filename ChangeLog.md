@@ -1,5 +1,12 @@
 # CHANGELOG CRMCLIENTCONNECTOR FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
+## 1.5.11
+
+- FIX: stored XSS: linking a mail to a document through the REST API created the email account with the address
+  sent by the client, without checking it, and the list of the email accounts showed it as is. The address must
+  now be a valid email and the message-id must not hold spaces nor HTML characters (HTTP 400 otherwise), and the
+  address, reference and label of the email accounts, links and notes are escaped in their links and tooltips.
+
 ## 1.5.10
 
 - FIX: anti-spam: the sender of an email was read in the display name or in a comment of the From header, so an

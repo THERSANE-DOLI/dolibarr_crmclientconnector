@@ -972,6 +972,9 @@ class CRMClientConnector extends DolibarrApi
 		}
 
 		$emaillink = crmclientconnectorGetOrCreateEmailLink($this->db, DolibarrApiAccess::$user, $accountEmail, $msgId);
+		if ($emaillink === -2) {
+			throw new RestException(400, 'Invalid accountEmail or msgId');
+		}
 		if (!is_object($emaillink)) {
 			throw new RestException(500, 'Error creating EmailLink for this mail');
 		}
