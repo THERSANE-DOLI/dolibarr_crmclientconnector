@@ -123,7 +123,7 @@ class EmailAccount extends CommonObject
 		"last_main_doc" => array("type"=>"varchar(255)", "label"=>"LastMainDoc", "enabled"=>"1", 'position'=>600, 'notnull'=>0, "visible"=>"0",),
 		"import_key" => array("type"=>"varchar(14)", "label"=>"ImportId", "enabled"=>"1", 'position'=>1000, 'notnull'=>-1, "visible"=>"-2",),
 		"model_pdf" => array("type"=>"varchar(255)", "label"=>"Model pdf", "enabled"=>"1", 'position'=>1010, 'notnull'=>-1, "visible"=>"0",),
-		"status" => array("type"=>"integer", "label"=>"Status", "enabled"=>"1", 'position'=>2000, 'notnull'=>1, "visible"=>"1", "index"=>"1", "arrayofkeyval"=>array("0" => "Brouillon", 1 => "Actif", 9 => "Désactivé"), "validate"=>"1",),
+		"status" => array("type"=>"integer", "label"=>"Status", "enabled"=>"1", 'position'=>2000, 'notnull'=>1, "visible"=>"1", "index"=>"1", "arrayofkeyval"=>array("0" => "Draft", 1 => "Enabled", 9 => "Disabled"), "validate"=>"1",),
 		// Anti-spam IMAP (edited in the "Anti-spam" tab, not in the generic card form)
 		"fk_user" => array("type"=>"integer:User:user/class/user.class.php", "label"=>"AntispamMailboxOwner", "picto"=>"user", "enabled"=>"1", 'position'=>3000, 'notnull'=>-1, "visible"=>"0",),
 		"antispam_active" => array("type"=>"integer", "label"=>"AntispamActive", "enabled"=>"1", 'position'=>3010, 'notnull'=>1, 'default'=>'0', "visible"=>"0",),

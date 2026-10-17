@@ -1,0 +1,233 @@
+# Translation file - it_IT
+
+#
+# Generic
+#
+
+# Module label 'ModuleCRMClientConnectorName'
+ModuleCRMClientConnectorName = CRM Client Connector
+# Module description 'ModuleCRMClientConnectorDesc'
+ModuleCRMClientConnectorDesc = Aggiunge API e strumenti per le estensioni di applicazioni esterne, come Thunderbird.
+
+#
+# Admin page
+#
+CRMClientConnectorSetup = Configurazione di CRM Client Connector
+Settings = Impostazioni
+CRMClientConnectorSetupPage = Pagina di configurazione di CRM Client Connector
+NewSection = Nuova sezione
+
+
+#
+# About page
+#
+About = Informazioni
+CRMClientConnectorAbout = Informazioni su CRM Client Connector
+CRMClientConnectorAboutPage = Pagina informativa di CRM Client Connector
+
+CRMClientConnectorArea = Home di CRM Client Connector
+EmailAccounts = Account email
+EmailAccount = Account email
+ExcludedMailDomains = Domini email esclusi
+DomainTooltipHelp = Domini email ignorati nella ricerca di un soggetto terzo a partire dal dominio di un indirizzo (es. gmail.com, libero.it)
+ThisModuleAddNewDictionary = Questo modulo aggiunge un nuovo dizionario
+ThisModuleAddNewDictionaryDesc = Vedere la pagina dei dizionari
+ThisModuleAddObjectEmailAccount = Elenco degli account email autorizzati a connettersi
+ThisModuleAddObjectEmailAccountLink = Apri la pagina
+ThisModuleAddObjectEmailAccountDesc = Questo elenco definisce quali account email possono interagire con le API di Dolibarr. Ad esempio, l'estensione "Thunderbird Dolibarr Connector" usa questo elenco per decidere se proporre di aggiungere una nota o un commento a un'email.
+NewUsersRightsForCRMClientConnector = Nuovi permessi per gli utenti
+NewUsersRightsForCRMClientConnectorDesc = Ricordatevi di assegnare i permessi adeguati agli utenti che si connettono a Dolibarr tramite un'applicazione esterna, come il Thunderbird Dolibarr Connector.
+
+#
+# Anti-spam IMAP
+#
+AntispamImap = Antispam IMAP
+Antispam = Antispam
+AntispamOn = attivo
+AntispamSetupDesc = Rimette nella posta in arrivo le email dei vostri clienti e fornitori classificate come indesiderate, quando il mittente è autenticato (DMARC, DKIM o SPF), e segnala le usurpazioni di indirizzo. Ogni casella si attiva nella scheda "Antispam" del suo account email.
+AntispamEnable = Attiva l'antispam IMAP
+AntispamImapConnection = Connessione IMAP
+AntispamImapHost = Server IMAP predefinito
+AntispamImapPort = Porta
+AntispamImapEncryption = Crittografia
+AntispamEncryptionSsl = SSL / TLS (porta 993)
+AntispamEncryptionStartTls = STARTTLS (porta 143)
+AntispamEncryptionNone = Nessuna (sconsigliato)
+AntispamImapValidateCert = Verifica il certificato del server
+AntispamImapValidateCertHelp = Disattivare solo per un server di prova con un certificato autofirmato.
+AntispamMasterUser = Utente master
+AntispamMasterUserHelp = Utente master dichiarato in Dovecot: apre ogni casella senza conoscerne la password.
+AntispamMasterPassword = Password dell'utente master
+AntispamPasswordKeep = Lasciare vuoto per mantenere la password salvata
+AntispamPasswordSaved = Password salvata (cifrata)
+AntispamDeletePassword = Elimina la password salvata
+AntispamConfirmDeletePassword = Eliminare la password dell'utente master? L'antispam non potrà più connettersi alle caselle.
+AntispamPasswordDeleted = Password eliminata
+AntispamMasterSeparator = Separatore
+AntispamMasterSeparatorHelp = Carattere tra l'indirizzo della casella e l'utente master (opzione auth_master_user_separator di Dovecot).
+AntispamLoginExample = Esempio di login
+AntispamErrorSeparatorInMasterUser = Il nome dell'utente master non deve contenere il separatore "%s".
+AntispamServerPrerequisites = Prerequisiti sul server di posta
+AntispamServerPrerequisitesDesc = Sul server Dovecot (ad esempio Plesk), dichiarare una volta l'utente master:
+AntispamServerStepHash = Generare l'hash della password:
+AntispamServerStepFile = Creare il file /etc/dovecot/master-users (proprietario root:dovecot, permessi 640):
+AntispamDolibarrServerIp = IP del server Dolibarr
+AntispamServerStepConf = Aggiungere un file di configurazione in /etc/dovecot/conf.d/:
+AntispamServerStepReload = Ricaricare Dovecot:
+AntispamServerSecurity = L'utente master apre ogni casella: limitatelo all'indirizzo IP del server Dolibarr (allow_nets) e aprite la porta IMAP solo per questo indirizzo.
+AntispamGoToSetup = Apri la configurazione
+AntispamErrorBadMailbox = Indirizzo della casella non valido: %s
+AntispamErrorAuthFailed = Accesso rifiutato dal server IMAP: verificate l'utente master, la sua password e l'indirizzo IP autorizzato (allow_nets).
+AntispamErrorConnection = Connessione IMAP non riuscita: %s
+AntispamErrorCertificate = Il certificato del server IMAP è stato rifiutato (scaduto, autofirmato o con un altro nome di server). Verificate il nome del server: deve essere quello del certificato.
+AntispamErrorToggle = Impossibile modificare l'antispam.
+AntispamActive = Antispam attivo per questa casella
+AntispamImapLogin = Login IMAP
+AntispamMailboxOwner = Dipendente
+AntispamMailboxOwnerHelp = Utente Dolibarr che potrà consultare il registro di questa casella.
+AntispamJunkFolders = Cartelle della posta indesiderata
+AntispamJunkFoldersHelp = Cartelle in cui il server o il programma di posta mette le email indesiderate (di solito INBOX/Spam o INBOX/Junk). Le email dei clienti e fornitori autenticati vengono recuperate da lì.
+AntispamChooseFolders = Scegli le cartelle
+AntispamNoJunkFolder = Nessuna cartella scelta
+AntispamFolderNotFound = non trovata sul server
+AntispamFoldersNotRead = Impossibile leggere le cartelle della casella.
+AntispamDateLastScan = Ultima analisi
+AntispamNeverScanned = Mai
+AntispamLastError = Ultimo errore
+AntispamTestConnection = Prova la connessione
+AntispamConnectionOk = Connessione riuscita (%s s)
+AntispamFoldersOnServer = Cartelle della casella
+AntispamFolder = Cartella
+AntispamNbMessages = Messaggi
+AntispamFolderRole = Ruolo
+AntispamRoleJunkChosen = Indesiderata (scelta)
+AntispamRoleInbox = Posta in arrivo
+AntispamRoleJunkServer = Indesiderata secondo il server
+AntispamImapConnectionDesc = Ogni casella si connette con l'utente master Dovecot (nessuna password della casella da inserire) oppure con login e password propri, da scegliere nella scheda "Antispam" della casella.
+AntispamImapHostHelp = Server usato dalle caselle che non hanno un proprio server.
+AntispamMasterSection = Utente master Dovecot (facoltativo)
+AntispamMasterSectionHelp = Senza utente master, ogni casella si connette con login e password propri.
+AntispamServerPrerequisitesOnlyMaster = Solo per usare l'utente master.
+AntispamAuthMode = Modalità di connessione
+AntispamAuthModeMaster = Utente master Dovecot
+AntispamAuthModeLogin = Login e password della casella
+AntispamMasterNotConfigured = non configurato
+AntispamLogin = Login
+AntispamPassword = Password
+AntispamOwnServer = Server IMAP proprio della casella
+AntispamOwnServerHelp = Da compilare solo se questa casella non è sul server predefinito della configurazione. Per Gmail o Microsoft 365, usare una password per le app.
+AntispamConnectionAdminOnly = Solo un amministratore può modificare la connessione, il server e il titolare della casella
+AntispamDefaultServer = Server predefinito: %s
+AntispamServerFromSetup = server predefinito
+AntispamErrorNoServer = Nessun server IMAP: inserite il server predefinito nella configurazione o il server della casella.
+AntispamErrorNoPassword = La password della casella non è indicata.
+AntispamErrorNoMaster = L'utente master non è configurato: configuratelo o scegliete la modalità "Login e password della casella".
+AntispamErrorAuthFailedLogin = Accesso rifiutato dal server IMAP: verificate login e password della casella.
+AntispamImapServer = Server IMAP
+AntispamTasks = Attività dell'antispam
+AntispamTasksDesc = Valori predefiniti di tutte le caselle. Ogni casella può forzare un'attività a sì o no nella sua scheda "Antispam".
+AntispamTaskGroupRescue = Recuperare dalla posta indesiderata le email dei mittenti noti (autenticati da DMARC, DKIM o SPF)
+AntispamTaskGroupSpoof = Segnalare le usurpazioni (mittente noto, autenticazione non riuscita), l'email non viene mai spostata
+AntispamTaskRescueCustomers = Clienti
+AntispamTaskRescueCustomersHelp = Indirizzo email dei clienti attivi (i soli potenziali clienti sono esclusi).
+AntispamTaskRescueSuppliers = Fornitori
+AntispamTaskRescueSuppliersHelp = Indirizzo email dei fornitori attivi.
+AntispamTaskRescueContacts = Contatti di questi soggetti terzi
+AntispamTaskRescueContactsHelp = Indirizzi dei contatti attivi dei clienti o fornitori considerati qui sopra.
+AntispamTaskRescueManual = Lista bianca manuale
+AntispamTaskRescueManualHelp = Indirizzi aggiunti a mano alla lista bianca dell'antispam.
+AntispamTaskMarkNotJunk = Contrassegnare le email recuperate come "non indesiderata"
+AntispamTaskMarkNotJunkHelp = Aggiunge la parola chiave $NotJunk alle email rimesse nella posta in arrivo: il filtro antispam di Thunderbird impara dall'errore.
+AntispamTaskSpoofJunk = Nelle cartelle della posta indesiderata
+AntispamTaskSpoofJunkHelp = Imposta il marcatore di usurpazione, mostrato come avviso dall'estensione Thunderbird DoliConnector.
+AntispamTaskSpoofInbox = Nella posta in arrivo
+AntispamTaskSpoofInboxHelp = Imposta lo stesso marcatore sulle email arrivate nella posta in arrivo.
+AntispamTaskFollowSetup = Come nella configurazione (%s)
+AntispamTaskForcedOn = Sì per questa casella
+AntispamTaskForcedOff = No per questa casella
+AntispamTaskFromSetup = configurazione
+AntispamTaskForcedForMailbox = forzato per questa casella
+AntispamAuthservIds = Identificativo del server di ricezione
+AntispamAuthservIdsHelp = Nome del server che riceve le email, come appare all'inizio dell'intestazione "Authentication-Results" delle email ricevute (es. mail.example.com). Solo questa intestazione, aggiunta dal vostro server, è considerata affidabile. Più server: separarli con virgole.
+AntispamWarningNoAuthservIds = L'identificativo del server di ricezione non è indicato nella configurazione: nessun mittente può essere autenticato, quindi nessuna email verrà recuperata dalla posta indesiderata.
+AntispamCronLabel = Antispam IMAP: analisi della posta indesiderata
+AntispamCronComment = Rimette nella posta in arrivo le email di clienti e fornitori autenticati classificate come indesiderate (modulo CRM Client Connector).
+AntispamCronMissing = L'attività pianificata dell'antispam non è stata trovata: disattivate e poi riattivate il modulo.
+AntispamCronDisabled = L'attività pianificata dell'antispam è disattivata: attivatela perché le caselle vengano analizzate ogni 5 minuti.
+AntispamCronEnabled = L'attività pianificata dell'antispam è attiva.
+AntispamCronOpen = Vedi l'attività pianificata
+AntispamScanDisabled = Antispam IMAP disattivato nella configurazione del modulo.
+AntispamScanNoMailbox = Nessuna casella con l'antispam attivo.
+AntispamScanSummary = %s email lette, %s recuperate dalla posta indesiderata, %s mittenti noti non autenticati, %s in lista nera
+AntispamScanNow = Analizza ora
+AntispamErrorFolder = Cartella %s: %s
+AntispamErrorFolderNotFound = La cartella %s non è stata trovata sul server.
+AntispamErrorMove = spostamento rifiutato dal server
+AntispamLog = Registro antispam
+AntispamSeeLog = Vedi il registro della casella
+AntispamLogDescAll = Email di mittenti noti trattate dall'antispam in tutte le caselle: recuperate dalla posta indesiderata, lasciate, in lista nera o segnalate come usurpazione.
+AntispamLogDescOwn = Email di mittenti noti trattate dall'antispam nelle vostre caselle (quelle di cui siete il dipendente): recuperate dalla posta indesiderata, lasciate, in lista nera o segnalate come usurpazione.
+AntispamSender = Mittente
+AntispamLogAction = Risultato
+AntispamAuthentication = Autenticazione
+AntispamActionRescued = Recuperata dalla posta indesiderata
+AntispamActionNotRescued = Lasciata nella posta indesiderata
+AntispamAuthPass = Autenticato
+AntispamAuthFail = Non autenticato
+AntispamAuthUnknown = Non verificabile
+Permission14191151 = Leggere il registro antispam delle caselle di cui l'utente è il dipendente
+Permission14191152 = Leggere il registro antispam di tutte le caselle
+AntispamSubject = Oggetto
+AntispamRules = Lista bianca / nera antispam
+AntispamRulesDesc = Indirizzi esatti aggiunti a mano. Lista bianca: le email dell'indirizzo vengono recuperate dalla posta indesiderata come quelle di un cliente noto, sempre solo se il mittente è autenticato (attività "Lista bianca manuale"). Lista nera: le email dell'indirizzo non vengono mai recuperate, anche per un cliente o un fornitore.
+AntispamRuleType = Lista
+AntispamRuleWhite = Lista bianca
+AntispamRuleBlack = Lista nera
+AntispamAllMailboxes = Tutte le caselle
+AntispamRuleAdded = %s aggiunto alla %s
+AntispamRuleDelete = Elimina la regola
+AntispamRuleConfirmDelete = Eliminare questo indirizzo dalla lista?
+AntispamActionBlocked = Lista nera
+AntispamAuthNotChecked = Non verificata
+AntispamAddToWhitelist = Aggiungi il mittente alla lista bianca
+AntispamAddToBlacklist = Aggiungi il mittente alla lista nera
+AntispamLogRetention = Conservazione del registro
+AntispamLogRetentionHelp = Le righe più vecchie del registro vengono eliminate dall'attività pianificata. 0: conservare tutto.
+AntispamLogPurged = %s righe vecchie eliminate dal registro
+Permission14191161 = Gestire la lista bianca / nera dell'antispam
+AntispamActionSpoof = Possibile usurpazione
+AntispamScanSummarySpoof = %s usurpazioni segnalate
+AntispamImpersonationAmbiguousFrom = più mittenti nell'email, tra cui l'indirizzo %s
+AntispamImpersonationDisplayName = il nome visualizzato del mittente contiene l'indirizzo %s, che non è il vero indirizzo di invio
+AntispamReservedToAdmin = Riservato agli amministratori
+CrmClientConnectorOnlyOwnNotes = Solo le vostre note possono essere eliminate: le note degli altri utenti sono state ignorate.
+
+#
+# Menus, objects and permissions (contribution of RealRidrick, PR #2)
+#
+CRMClientConnectorDescription = Aggiunge API e strumenti per le estensioni di applicazioni esterne, come Thunderbird.
+CRMClientConnectorMenu = CRM Client Connector
+ListOfEmailAccounts = Elenco degli account email
+NewEmailAccount = Nuovo account email
+ShowEmailAccount = Vedi l'account email
+DeleteEmailAccount = Elimina l'account email
+ConfirmActionEmailAccount = Volete davvero eseguire questa azione sull'account email %s?
+EmailLink = Collegamento tra un'email e dei documenti
+ShowEmailLink = Vedi il collegamento
+EmailMessage = Email
+EmailUserMsg = Nota su un'email
+EmailUserMsgs = Note sulle email
+ShowEmailUserMsg = Vedi la nota
+DeleteEmailUserMsg = Elimina la nota
+ConfirmActionEmailUserMsg = Volete davvero eseguire questa azione sulla nota %s?
+ErrorNumberingModuleNotSetup = Errore: modulo di numerazione non configurato per l'oggetto %s
+Permission14191101 = Leggere i collegamenti tra email e documenti
+Permission14191102 = Creare/modificare i collegamenti tra email e documenti
+Permission14191103 = Eliminare i collegamenti tra email e documenti
+Permission14191111 = Leggere gli account email
+Permission14191112 = Creare/modificare gli account email
+Permission14191113 = Eliminare gli account email
+Permission14191131 = Leggere le note sulle email
+Permission14191132 = Creare/modificare le note sulle email
+Permission14191133 = Eliminare le note sulle email
+Permission14191141 = Leggere i domini email esclusi
