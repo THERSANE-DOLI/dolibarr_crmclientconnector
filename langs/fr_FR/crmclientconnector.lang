@@ -182,3 +182,4 @@ AntispamScanSummarySpoof = %s usurpation(s) signalée(s)
 AntispamImpersonationAmbiguousFrom = plusieurs expéditeurs dans le mail, dont l'adresse %s
 AntispamImpersonationDisplayName = le nom affiché de l'expéditeur contient l'adresse %s, qui n'est pas la vraie adresse d'envoi
 AntispamReservedToAdmin = Réservé aux administrateurs
+CrmClientConnectorOnlyOwnNotes = Seules vos propres notes peuvent être supprimées : les notes des autres utilisateurs ont été ignorées.

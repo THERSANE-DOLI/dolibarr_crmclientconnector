@@ -415,7 +415,7 @@ class CRMClientConnector extends DolibarrApi
 		// $this->emailaccount->abc = sanitizeVal($this->emailaccount->abc, 'alphanohtml');
 
 		if ($this->emailaccount->update(DolibarrApiAccess::$user, false) > 0) {
-			return $this->get($id);
+			return $this->getEmailAccounts($id);
 		} else {
 			throw new RestException(500, $this->emailaccount->error);
 		}
@@ -448,9 +448,10 @@ class CRMClientConnector extends DolibarrApi
 			throw new RestException(404, 'EmailAccount not found');
 		}
 
-		if ($this->emailaccount->delete(DolibarrApiAccess::$user) == 0) {
+		$result = $this->emailaccount->delete(DolibarrApiAccess::$user);
+		if ($result == 0) {
 			throw new RestException(409, 'Error when deleting EmailAccount : '.$this->emailaccount->error);
-		} elseif ($this->emailaccount->delete(DolibarrApiAccess::$user) < 0) {
+		} elseif ($result < 0) {
 			throw new RestException(500, 'Error when deleting EmailAccount : '.$this->emailaccount->error);
 		}
 
@@ -658,25 +659,9 @@ class CRMClientConnector extends DolibarrApi
 		// Check mandatory fields
 		$result = $this->_validateEmailLink($request_data);
 
-		foreach ($request_data as $field => $value) {
-			if ($field === 'caller') {
-				// Add a mention of caller so on trigger called after action, we can filter to avoid a loop if we try to sync back again with the caller
-				$this->emaillink->context['caller'] = sanitizeVal($request_data['caller'], 'aZ09');
-				continue;
-			}
-
-			if ($field == 'array_options' && is_array($value)) {
-				foreach ($value as $index => $val) {
-					$this->emaillink->array_options[$index] = $this->_checkValForAPI('extrafields', $val, $this->emaillink);
-				}
-				continue;
-			}
-
-			$this->emaillink->$field = $this->_checkValForAPI($field, $value, $this->emaillink);
-		}
-
-		// Clean data
-		// $this->emaillink->abc = sanitizeVal($this->emaillink->abc, 'alphanohtml');
+		// Only the fields of a link (never the author, dates, ids...), checked
+		$this->_assignRequestData($this->emaillink, $request_data, array('fk_email_account', 'email_msgid'));
+		$this->_checkEmailLinkData($this->emaillink);
 
 		if ($this->emaillink->create(DolibarrApiAccess::$user)<0) {
 			throw new RestException(500, "Error creating EmailLink", array_merge(array($this->emaillink->error), $this->emaillink->errors));
@@ -711,38 +696,12 @@ class CRMClientConnector extends DolibarrApi
 			throw new RestException(404, 'EmailLink not found');
 		}
 
-		foreach ($request_data as $field => $value) {
-			if ($field == 'id') {
-				continue;
-			}
-			if ($field === 'caller') {
-				// Add a mention of caller so on trigger called after action, we can filter to avoid a loop if we try to sync back again with the caller
-				$this->emaillink->context['caller'] = sanitizeVal($request_data['caller'], 'aZ09');
-				continue;
-			}
-
-			if ($field == 'array_options' && is_array($value)) {
-				foreach ($value as $index => $val) {
-					$this->emaillink->array_options[$index] = $this->_checkValForAPI('extrafields', $val, $this->emaillink);
-				}
-				continue;
-			}
-
-			if ($field == 'array_options' && is_array($value)) {
-				foreach ($value as $index => $val) {
-					$this->emaillink->array_options[$index] = $this->_checkValForAPI($field, $val, $this->emaillink);
-				}
-				continue;
-			}
-
-			$this->emaillink->$field = $this->_checkValForAPI($field, $value, $this->emaillink);
-		}
-
-		// Clean data
-		// $this->emaillink->abc = sanitizeVal($this->emaillink->abc, 'alphanohtml');
+		// Only the fields of a link (never the author, dates, ids...), checked
+		$this->_assignRequestData($this->emaillink, $request_data, array('fk_email_account', 'email_msgid'));
+		$this->_checkEmailLinkData($this->emaillink);
 
 		if ($this->emaillink->update(DolibarrApiAccess::$user, false) > 0) {
-			return $this->get($id);
+			return $this->getEmailLink($id);
 		} else {
 			throw new RestException(500, $this->emaillink->error);
 		}
@@ -775,9 +734,10 @@ class CRMClientConnector extends DolibarrApi
 			throw new RestException(404, 'EmailLink not found');
 		}
 
-		if ($this->emaillink->delete(DolibarrApiAccess::$user) == 0) {
+		$result = $this->emaillink->delete(DolibarrApiAccess::$user);
+		if ($result == 0) {
 			throw new RestException(409, 'Error when deleting EmailLink : '.$this->emaillink->error);
-		} elseif ($this->emaillink->delete(DolibarrApiAccess::$user) < 0) {
+		} elseif ($result < 0) {
 			throw new RestException(500, 'Error when deleting EmailLink : '.$this->emaillink->error);
 		}
 
@@ -1470,6 +1430,9 @@ class CRMClientConnector extends DolibarrApi
 			if(empty($emailAccountId)) {
 				throw new RestException(404, 'EmailAccount not found');
 			}
+			if (!crmclientconnectorIsValidMsgId((string) $request_data['emailMsgId'])) {
+				throw new RestException(400, 'Invalid emailMsgId');
+			}
 
 			$emailLink = new EmailLink($this->db);
 			$obj = $this->db->getRow('SELECT rowid as id
@@ -1499,25 +1462,12 @@ class CRMClientConnector extends DolibarrApi
 			throw new RestException(500, 'Data send invalid');
 		}
 
-		foreach ($request_data as $field => $value) {
-			if ($field === 'caller') {
-				// Add a mention of caller so on trigger called after action, we can filter to avoid a loop if we try to sync back again with the caller
-				$this->emailusermsg->context['caller'] = sanitizeVal($request_data['caller'], 'aZ09');
-				continue;
-			}
-
-			if ($field == 'array_options' && is_array($value)) {
-				foreach ($value as $index => $val) {
-					$this->emailusermsg->array_options[$index] = $this->_checkValForAPI('extrafields', $val, $this->emailusermsg);
-				}
-				continue;
-			}
-
-			$this->emailusermsg->$field = $this->_checkValForAPI($field, $value, $this->emailusermsg);
+		// Only the note and its mail: the author is the API user, never a posted value
+		$this->_assignRequestData($this->emailusermsg, $request_data, array('message', 'fk_email_link'));
+		$emailLinkStatic = new EmailLink($this->db);
+		if ((int) $this->emailusermsg->fk_email_link <= 0 || $emailLinkStatic->fetch((int) $this->emailusermsg->fk_email_link) <= 0) {
+			throw new RestException(400, 'Invalid fk_email_link');
 		}
-
-		// Clean data
-		// $this->emailusermsg->abc = sanitizeVal($this->emailusermsg->abc, 'alphanohtml');
 
 		if ($this->emailusermsg->create(DolibarrApiAccess::$user)<0) {
 			throw new RestException(500, "Error creating EmailUserMsg", array_merge(array($this->emailusermsg->error), $this->emailusermsg->errors));
@@ -1553,36 +1503,12 @@ class CRMClientConnector extends DolibarrApi
 		if (!$result) {
 			throw new RestException(404, 'EmailUserMsg not found');
 		}
-
-		foreach ($request_data as $field => $value) {
-			if ($field == 'id') {
-				continue;
-			}
-			if ($field === 'caller') {
-				// Add a mention of caller so on trigger called after action, we can filter to avoid a loop if we try to sync back again with the caller
-				$this->emailusermsg->context['caller'] = sanitizeVal($request_data['caller'], 'aZ09');
-				continue;
-			}
-
-			if ($field == 'array_options' && is_array($value)) {
-				foreach ($value as $index => $val) {
-					$this->emailusermsg->array_options[$index] = $this->_checkValForAPI('extrafields', $val, $this->emailusermsg);
-				}
-				continue;
-			}
-
-			if ($field == 'array_options' && is_array($value)) {
-				foreach ($value as $index => $val) {
-					$this->emailusermsg->array_options[$index] = $this->_checkValForAPI($field, $val, $this->emailusermsg);
-				}
-				continue;
-			}
-
-			$this->emailusermsg->$field = $this->_checkValForAPI($field, $value, $this->emailusermsg);
+		if (!$this->_canChangeEmailUserMsg($this->emailusermsg)) {
+			throw new RestException(403, 'Only the author of a note can change it');
 		}
 
-		// Clean data
-		// $this->emailusermsg->abc = sanitizeVal($this->emailusermsg->abc, 'alphanohtml');
+		// Only the text of the note (never its mail, author, dates...)
+		$this->_assignRequestData($this->emailusermsg, $request_data, array('message'));
 
 		if ($this->emailusermsg->update(DolibarrApiAccess::$user, false) > 0) {
 			return $this->getEmailUserMsg($id);
@@ -1617,10 +1543,14 @@ class CRMClientConnector extends DolibarrApi
 		if (!$result) {
 			throw new RestException(404, 'EmailUserMsg not found');
 		}
+		if (!$this->_canChangeEmailUserMsg($this->emailusermsg)) {
+			throw new RestException(403, 'Only the author of a note can delete it');
+		}
 
-		if ($this->emailusermsg->delete(DolibarrApiAccess::$user) == 0) {
+		$result = $this->emailusermsg->delete(DolibarrApiAccess::$user);
+		if ($result == 0) {
 			throw new RestException(409, 'Error when deleting EmailUserMsg : '.$this->emailusermsg->error);
-		} elseif ($this->emailusermsg->delete(DolibarrApiAccess::$user) < 0) {
+		} elseif ($result < 0) {
 			throw new RestException(500, 'Error when deleting EmailUserMsg : '.$this->emailusermsg->error);
 		}
 
@@ -1853,6 +1783,66 @@ class CRMClientConnector extends DolibarrApi
 		}
 		$obj = $this->db->getRow("SELECT firstname, lastname FROM ".$this->db->prefix()."socpeople WHERE rowid = ".((int) $contactid));
 		return $obj ? array('id' => (int) $contactid, 'name' => trim($obj->firstname.' '.$obj->lastname)) : null;
+	}
+
+	/**
+	 * Copy the request data into an object, for the allowed fields only (plus extrafields and the caller). The other
+	 * posted fields (author, dates, ids, status...) are ignored, the object keeps its own values.
+	 *
+	 * @param	CommonObject			$object			Object to fill
+	 * @param	array<string,mixed>|null	$request_data	Request data
+	 * @param	string[]				$allowedFields	Fields that can be set by the caller
+	 * @return	void
+	 */
+	private function _assignRequestData($object, $request_data, $allowedFields)
+	{
+		foreach ((array) $request_data as $field => $value) {
+			if ($field === 'caller') {
+				// Add a mention of caller so on trigger called after action, we can filter to avoid a loop if we try to sync back again with the caller
+				$object->context['caller'] = sanitizeVal($value, 'aZ09');
+				continue;
+			}
+			if ($field === 'array_options' && is_array($value)) {
+				foreach ($value as $index => $val) {
+					$object->array_options[$index] = $this->_checkValForAPI('extrafields', $val, $object);
+				}
+				continue;
+			}
+			if (!in_array($field, $allowedFields, true)) {
+				continue;
+			}
+			$object->$field = $this->_checkValForAPI($field, $value, $object);
+		}
+	}
+
+	/**
+	 * Check the fields of an email link set from the request: existing email account, valid message-id
+	 *
+	 * @param	EmailLink	$emaillink	Email link
+	 * @return	void
+	 *
+	 * @throws RestException 400
+	 */
+	private function _checkEmailLinkData($emaillink)
+	{
+		$emailaccount = new EmailAccount($this->db);
+		if ((int) $emaillink->fk_email_account <= 0 || $emailaccount->fetch((int) $emaillink->fk_email_account) <= 0) {
+			throw new RestException(400, 'Invalid fk_email_account');
+		}
+		if (!crmclientconnectorIsValidMsgId((string) $emaillink->email_msgid)) {
+			throw new RestException(400, 'Invalid email_msgid');
+		}
+	}
+
+	/**
+	 * Can the API user change or delete a note: only its author, or an administrator
+	 *
+	 * @param	EmailUserMsg	$emailusermsg	Note
+	 * @return	bool
+	 */
+	private function _canChangeEmailUserMsg($emailusermsg)
+	{
+		return !empty(DolibarrApiAccess::$user->admin) || (int) $emailusermsg->fk_user_creat === (int) DolibarrApiAccess::$user->id;
 	}
 
 	/**

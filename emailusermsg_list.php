@@ -257,6 +257,19 @@ if (empty($reshook)) {
 		$massaction = ''; // Protection to avoid mass action if we force a new search during a mass action confirmation
 	}
 
+	// A note can only be deleted by its author (or an administrator): the notes of the other users are left out
+	if (!empty($toselect) && empty($user->admin) && in_array($massaction, array('predelete', 'delete'))) {
+		$owntoselect = array();
+		$resqlown = $db->query("SELECT rowid FROM ".$db->prefix()."crmclientconnector_emailusermsg WHERE rowid IN (".$db->sanitize(implode(',', array_map('intval', $toselect))).") AND fk_user_creat = ".((int) $user->id));
+		while ($resqlown && ($objown = $db->fetch_object($resqlown))) {
+			$owntoselect[] = (int) $objown->rowid;
+		}
+		if (count($owntoselect) < count($toselect)) {
+			setEventMessages($langs->trans('CrmClientConnectorOnlyOwnNotes'), null, 'warnings');
+		}
+		$toselect = $owntoselect;
+	}
+
 	// Mass actions
 	$objectclass = 'EmailUserMsg';
 	$objectlabel = 'EmailUserMsg';

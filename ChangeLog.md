@@ -1,5 +1,17 @@
 # CHANGELOG CRMCLIENTCONNECTOR FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
+## 1.5.13
+
+- FIX: notes on mails and links between mails and documents: the REST API copied every posted field into the object,
+  so a note could be given another author or date, or moved to another mail, and a link to another mailbox. Any user
+  allowed to change or delete the notes could also change or delete the notes of the other users.
+  - REST API: only the text and the mail of a note, the mailbox and message-id of a link are read (checked), the
+    other posted fields are ignored
+  - a note can only be changed or deleted by its author or an administrator (REST API, card, mass delete of the
+    list), like in the DoliConnector extension
+  - the update of an email account or of a link no longer ends with an HTTP 500 although it was saved, and deleting
+    an email account, a link or a note no longer runs the deletion twice
+
 ## 1.5.12
 
 - FIX: anti-spam: with the Dovecot master user, the login of a mailbox is its address, so a user allowed to change

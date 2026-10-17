@@ -200,3 +200,4 @@ AntispamScanSummarySpoof = %s spoofing flagged
 AntispamImpersonationAmbiguousFrom = several senders in the email, including the address %s
 AntispamImpersonationDisplayName = the display name of the sender holds the address %s, which is not the real sending address
 AntispamReservedToAdmin = Reserved to administrators
+CrmClientConnectorOnlyOwnNotes = Only your own notes can be deleted: the notes of the other users were left out.

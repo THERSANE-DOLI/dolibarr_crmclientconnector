@@ -150,6 +150,14 @@ if ($enablepermissioncheck) {
 	$permissiondellink = 1;
 }
 
+// A note can only be changed or deleted by its author (or an administrator), like in the DoliConnector extension
+if ($object->id > 0 && empty($user->admin) && (int) $object->fk_user_creat !== (int) $user->id) {
+	$permissiontoadd = 0;
+	$permissiontodelete = 0;
+	$permissionnote = 0;
+	$permissiondellink = 0;
+}
+
 $upload_dir = $conf->crmclientconnector->multidir_output[isset($object->entity) ? $object->entity : 1].'/emailusermsg';
 
 // Security check (enable the most restrictive one)
