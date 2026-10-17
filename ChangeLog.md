@@ -1,5 +1,13 @@
 # CHANGELOG CRMCLIENTCONNECTOR FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
+## 1.5.16
+
+- FIX: the mail to link, kept when a create page is opened from DoliConnector (accountEmail, msgId), was used by the
+  next creation of any proposal, order, ticket or event, even much later: a link to a create page sent to a user
+  attached his next document to a mail chosen by the sender. It is now used only by the creation of the same type
+  of document, within one hour, and an invalid address or message-id no longer prevents the creation of the
+  document.
+
 ## 1.5.15
 
 - FIX: CSRF on the « Anti-spam » tab of an email account with Dolibarr 18: the scan now, connection test and edition
