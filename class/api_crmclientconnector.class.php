@@ -1677,25 +1677,56 @@ class CRMClientConnector extends DolibarrApi
 		$account = $this->_fetchAntispamAccount($accountEmail);
 
 		$parsedHeaders = CrmClientConnectorAntispamAuth::parseHeaders((string) $headers);
-		$fromAddress = CrmClientConnectorAntispamAuth::extractAddress(CrmClientConnectorAntispamAuth::getHeader($parsedHeaders, 'from'));
+		// Real address of the sender only (never the display name), '' when the From is ambiguous
+		$from = CrmClientConnectorAntispamAuth::analyzeFrom($parsedHeaders);
+		$fromAddress = $from['address'];
 
-		$answer = array('from' => $fromAddress, 'result' => CrmClientConnectorAntispamAuth::RESULT_UNKNOWN, 'detail' => '', 'known' => false, 'spoof' => false, 'thirdparty' => null, 'contact' => null);
-		if ($fromAddress === '') {
+		$answer = array('from' => $fromAddress !== '' ? $fromAddress : implode(', ', $from['addresses']), 'result' => CrmClientConnectorAntispamAuth::RESULT_UNKNOWN, 'detail' => '', 'known' => false, 'spoof' => false, 'thirdparty' => null, 'contact' => null);
+
+		// Addresses to look for: the sender, and the addresses of an ambiguous From or written in the display name
+		$impersonated = $from['ambiguous'] ? $from['addresses'] : array();
+		foreach ($from['displayAddresses'] as $displayAddress) {
+			if ($displayAddress !== $fromAddress) {
+				$impersonated[] = $displayAddress;
+			}
+		}
+		$impersonated = array_values(array_unique($impersonated));
+		$candidates = array_values(array_unique(array_filter(array_merge(array($fromAddress), $impersonated), 'strlen')));
+		if (empty($candidates)) {
 			return $answer;
 		}
 
 		$whitelist = new CrmClientConnectorAntispamWhitelist($this->db);
-		if ($whitelist->load($fromAddress) < 0) {
-			throw new RestException(500, $whitelist->error);
+		if ($whitelist->load(count($candidates) === 1 ? $candidates[0] : '') < 0) {
+			dol_syslog(__METHOD__.' '.$whitelist->error, LOG_ERR);
+			throw new RestException(500, 'Error while reading the known senders');
 		}
-		$sender = $whitelist->getSpoofSender($fromAddress, $account);
+		$spoofTasks = CrmClientConnectorAntispamImap::isTaskEnabled($account, 'spoof_inbox') || CrmClientConnectorAntispamImap::isTaskEnabled($account, 'spoof_junk');
 
-		$auth = CrmClientConnectorAntispamAuth::check($parsedHeaders, $fromAddress, CrmClientConnectorAntispamScanner::getAuthservIds());
-		$answer['result'] = $auth['result'];
-		$answer['detail'] = $auth['detail'];
-		$answer['known'] = $sender !== null;
-		$answer['spoof'] = $sender !== null && $auth['result'] === CrmClientConnectorAntispamAuth::RESULT_FAIL
-			&& (CrmClientConnectorAntispamImap::isTaskEnabled($account, 'spoof_inbox') || CrmClientConnectorAntispamImap::isTaskEnabled($account, 'spoof_junk'));
+		$sender = $fromAddress !== '' ? $whitelist->getSpoofSender($fromAddress, $account) : null;
+		if ($fromAddress !== '') {
+			$auth = CrmClientConnectorAntispamAuth::check($parsedHeaders, $fromAddress, CrmClientConnectorAntispamScanner::getAuthservIds());
+			$answer['result'] = $auth['result'];
+			$answer['detail'] = $auth['detail'];
+			$answer['known'] = $sender !== null;
+			$answer['spoof'] = $sender !== null && $auth['result'] === CrmClientConnectorAntispamAuth::RESULT_FAIL && $spoofTasks;
+		}
+		// Ambiguous From or display name written with the address of a known sender: same rule as the scheduled scan
+		if (!$answer['spoof'] && $spoofTasks) {
+			global $langs;
+			$langs->loadLangs(array('crmclientconnector@crmclientconnector'));
+			foreach ($impersonated as $address) {
+				$impersonatedSender = $whitelist->getSpoofSender($address, $account);
+				if ($impersonatedSender) {
+					$sender = $impersonatedSender;
+					$answer['known'] = true;
+					$answer['spoof'] = true;
+					$answer['result'] = CrmClientConnectorAntispamAuth::RESULT_FAIL;
+					$answer['detail'] = $langs->transnoentities($from['ambiguous'] ? 'AntispamImpersonationAmbiguousFrom' : 'AntispamImpersonationDisplayName', $address);
+					break;
+				}
+			}
+		}
 		if ($sender) {
 			$answer['thirdparty'] = $this->_antispamThirdparty($sender['socid']);
 			$answer['contact'] = $this->_antispamContact($sender['contactid']);

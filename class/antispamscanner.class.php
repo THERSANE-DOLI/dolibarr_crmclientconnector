@@ -299,61 +299,71 @@ class CrmClientConnectorAntispamScanner
 				$stats['read']++;
 
 				$headers = CrmClientConnectorAntispamAuth::parseHeaders($headersByUid[$uid]);
-				$fromAddress = CrmClientConnectorAntispamAuth::extractAddress(CrmClientConnectorAntispamAuth::getHeader($headers, 'from'));
-				if ($fromAddress === '') {
-					continue;
-				}
+				// Real address of the sender only (never the display name), '' when the From is ambiguous
+				$from = CrmClientConnectorAntispamAuth::analyzeFrom($headers);
+				$fromAddress = $from['address'];
+				$impersonation = $this->findImpersonation($from, $account);
 
 				if ($isInbox) {
 					// Inbox: an address of a known customer, supplier, contact or of the whitelist, not authenticated
-					$sender = $this->whitelist->getSpoofSender($fromAddress, $account);
-					if (!$sender) {
-						continue;
+					$flagged = false;
+					$sender = $fromAddress !== '' ? $this->whitelist->getSpoofSender($fromAddress, $account) : null;
+					if ($sender) {
+						$auth = CrmClientConnectorAntispamAuth::check($headers, $fromAddress, $authservIds);
+						if ($auth['result'] === CrmClientConnectorAntispamAuth::RESULT_FAIL && $flagSpoof) {
+							$this->flagSpoof($connection, $uid, $spoofKeyword, $account, $folder, $headers, $fromAddress, $sender, $auth);
+							$stats['spoof']++;
+							$flagged = true;
+						}
 					}
-					$auth = CrmClientConnectorAntispamAuth::check($headers, $fromAddress, $authservIds);
-					if ($auth['result'] === CrmClientConnectorAntispamAuth::RESULT_FAIL && $flagSpoof) {
-						$connection->store(array($spoofKeyword), $uid, null, '+', true, true);
+					if (!$flagged && $impersonation && $flagSpoof) {
+						$this->flagSpoof($connection, $uid, $spoofKeyword, $account, $folder, $headers, implode(', ', $from['addresses']), $impersonation['sender'], $impersonation['auth']);
 						$stats['spoof']++;
-						$this->addLog($account, $folder, $headers, $fromAddress, $sender, self::ACTION_SPOOF, $auth);
 					}
 					continue;
 				}
 
-				// Blacklisted customer or supplier: left in junk, written in the log so that nobody wonders why
-				// (a blacklisted unknown address is not logged, junk folders are full of them)
-				if ($this->whitelist->hasRule($fromAddress, $account, CrmClientConnectorAntispamRule::TYPE_BLACK)) {
-					$dolibarrSender = $this->whitelist->getDolibarrSender($fromAddress);
-					if ($dolibarrSender) {
-						$stats['blocked']++;
-						$this->addLog($account, $folder, $headers, $fromAddress, $dolibarrSender, self::ACTION_BLOCKED, array('result' => '', 'detail' => ''));
-					}
-					continue;
-				}
-
-				// Known sender for the rescue (sources chosen by the tasks), or at least for the spoofing
-				$sender = $this->whitelist->find($fromAddress, $account);
-				$spoofSender = $sender ? $sender : $this->whitelist->getSpoofSender($fromAddress, $account);
-				if (!$spoofSender) {
-					continue;
-				}
-
-				$auth = CrmClientConnectorAntispamAuth::check($headers, $fromAddress, $authservIds);
-				if ($auth['result'] === CrmClientConnectorAntispamAuth::RESULT_PASS && $sender) {
-					if ($this->moveToInbox($connection, $uid, $targetFolder, $markNotJunk)) {
-						$stats['rescued']++;
-						$this->addLog($account, $folder, $headers, $fromAddress, $sender, self::ACTION_RESCUED, $auth);
+				if ($fromAddress !== '') {
+					// Blacklisted customer or supplier: left in junk, written in the log so that nobody wonders why
+					// (a blacklisted unknown address is not logged, junk folders are full of them)
+					if ($this->whitelist->hasRule($fromAddress, $account, CrmClientConnectorAntispamRule::TYPE_BLACK)) {
+						$dolibarrSender = $this->whitelist->getDolibarrSender($fromAddress);
+						if ($dolibarrSender) {
+							$stats['blocked']++;
+							$this->addLog($account, $folder, $headers, $fromAddress, $dolibarrSender, self::ACTION_BLOCKED, array('result' => '', 'detail' => ''));
+						}
 						continue;
 					}
-					$auth['detail'] .= ' / '.$langs->transnoentities('AntispamErrorMove');
-				} elseif ($auth['result'] === CrmClientConnectorAntispamAuth::RESULT_FAIL && $flagSpoof) {
-					$connection->store(array($spoofKeyword), $uid, null, '+', true, true);
-					$stats['spoof']++;
-					$this->addLog($account, $folder, $headers, $fromAddress, $spoofSender, self::ACTION_SPOOF, $auth);
-					continue;
+
+					// Known sender for the rescue (sources chosen by the tasks), or at least for the spoofing
+					$sender = $this->whitelist->find($fromAddress, $account);
+					$spoofSender = $sender ? $sender : $this->whitelist->getSpoofSender($fromAddress, $account);
+					if ($spoofSender) {
+						$auth = CrmClientConnectorAntispamAuth::check($headers, $fromAddress, $authservIds);
+						if ($auth['result'] === CrmClientConnectorAntispamAuth::RESULT_PASS && $sender) {
+							if ($this->moveToInbox($connection, $uid, $targetFolder, $markNotJunk)) {
+								$stats['rescued']++;
+								$this->addLog($account, $folder, $headers, $fromAddress, $sender, self::ACTION_RESCUED, $auth);
+								continue;
+							}
+							$auth['detail'] .= ' / '.$langs->transnoentities('AntispamErrorMove');
+						} elseif ($auth['result'] === CrmClientConnectorAntispamAuth::RESULT_FAIL && $flagSpoof) {
+							$this->flagSpoof($connection, $uid, $spoofKeyword, $account, $folder, $headers, $fromAddress, $spoofSender, $auth);
+							$stats['spoof']++;
+							continue;
+						}
+						if ($sender && !$impersonation) {
+							$stats['notrescued']++;
+							$this->addLog($account, $folder, $headers, $fromAddress, $sender, self::ACTION_NOT_RESCUED, $auth);
+							continue;
+						}
+					}
 				}
-				if ($sender) {
-					$stats['notrescued']++;
-					$this->addLog($account, $folder, $headers, $fromAddress, $sender, self::ACTION_NOT_RESCUED, $auth);
+
+				// Ambiguous From, or display name written with the address of a known sender: never taken out of junk
+				if ($impersonation && $flagSpoof) {
+					$this->flagSpoof($connection, $uid, $spoofKeyword, $account, $folder, $headers, implode(', ', $from['addresses']), $impersonation['sender'], $impersonation['auth']);
+					$stats['spoof']++;
 				}
 			}
 		}
@@ -361,6 +371,62 @@ class CrmClientConnectorAntispamScanner
 		$this->saveFolderState($account->id, $folder, (int) $status['uidvalidity'], $maxUid);
 
 		return $stats;
+	}
+
+	/**
+	 * Impersonation of a known sender without using his address as the real sender: a From header with several
+	 * addresses (or several From headers) including a known one, or a display name written with the address of a
+	 * known sender, ex: "<client@gmail.com>" <attacker@gmail.com>.
+	 *
+	 * @param	array{address:string,ambiguous:bool,addresses:string[],displayAddresses:string[]}	$from	From analysis
+	 * @param	EmailAccount	$account	Mailbox
+	 * @return	array{sender:array{socid:int,contactid:int,customer:bool,supplier:bool},auth:array{result:string,detail:string}}|null
+	 */
+	protected function findImpersonation($from, $account)
+	{
+		global $langs;
+
+		$candidates = array();
+		if ($from['ambiguous']) {
+			foreach ($from['addresses'] as $address) {
+				$candidates[$address] = 'AntispamImpersonationAmbiguousFrom';
+			}
+		}
+		foreach ($from['displayAddresses'] as $address) {
+			if ($address !== $from['address'] && !isset($candidates[$address])) {
+				$candidates[$address] = 'AntispamImpersonationDisplayName';
+			}
+		}
+		foreach ($candidates as $address => $reason) {
+			$sender = $this->whitelist->getSpoofSender((string) $address, $account);
+			if ($sender) {
+				return array(
+					'sender' => $sender,
+					'auth' => array('result' => CrmClientConnectorAntispamAuth::RESULT_FAIL, 'detail' => $langs->transnoentities($reason, (string) $address)),
+				);
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Set the spoofing keyword on a message and write it in the log
+	 *
+	 * @param	\Webklex\PHPIMAP\Connection\Protocols\ImapProtocol	$connection		Connection, folder selected
+	 * @param	int				$uid			UID of the message
+	 * @param	string			$keyword		IMAP keyword
+	 * @param	EmailAccount	$account		Mailbox
+	 * @param	string			$folder			IMAP path of the folder
+	 * @param	array<int,array{0:string,1:string}>	$headers	Headers of the email
+	 * @param	string			$fromAddress	Sender address(es) for the log
+	 * @param	array{socid:int,contactid:int,customer:bool,supplier:bool}	$sender	Known sender impersonated
+	 * @param	array{result:string,detail:string}	$auth	Authentication result
+	 * @return	void
+	 */
+	protected function flagSpoof($connection, $uid, $keyword, $account, $folder, $headers, $fromAddress, $sender, $auth)
+	{
+		$connection->store(array($keyword), $uid, null, '+', true, true);
+		$this->addLog($account, $folder, $headers, $fromAddress, $sender, self::ACTION_SPOOF, $auth);
 	}
 
 	/**

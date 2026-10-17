@@ -197,3 +197,5 @@ AntispamLogPurged = %s old line(s) deleted from the log
 Permission14191161 = Manage the whitelist / blacklist of the anti-spam
 AntispamActionSpoof = Possible spoofing
 AntispamScanSummarySpoof = %s spoofing flagged
+AntispamImpersonationAmbiguousFrom = several senders in the email, including the address %s
+AntispamImpersonationDisplayName = the display name of the sender holds the address %s, which is not the real sending address

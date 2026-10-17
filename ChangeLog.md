@@ -1,5 +1,20 @@
 # CHANGELOG CRMCLIENTCONNECTOR FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
+## 1.5.10
+
+- FIX: anti-spam: the sender of an email was read in the display name or in a comment of the From header, so an
+  email of an attacker could be taken out of junk as the one of a customer (« "<client@gmail.com>"
+  <attacker@gmail.com> ») and a spoofed email could escape the spoofing alert. The headers are now read with their
+  quoted strings and comments:
+  - the sender is only the real address of the From header; several From headers or several addresses: never
+    taken out of junk, and flagged as spoofing when one of them is a known sender
+  - a display name holding the address of a known sender, other than the real address, is flagged as spoofing
+  - Authentication-Results: a ';' or a '(' inside quotes no longer splits the results (forged envelope sender),
+    unclosed quotes or comments, a duplicate spf or dmarc result and dmarc=pass without header.from are failures
+  - Received-SPF: keys read one by one (a HELO holding « envelope-from= » is ignored), identity must be mailfrom;
+    hidden option CRMCLIENTCONNECTOR_ANTISPAM_DISABLE_RECEIVED_SPF to never use this header
+  - same rules for the check of the DoliConnector extension (REST API antispam/check)
+
 ## 1.5.9
 
 - FIX: the card of an email account saved the anti-spam fields posted with it (server, connection mode, owner,
