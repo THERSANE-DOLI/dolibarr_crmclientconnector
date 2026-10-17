@@ -272,6 +272,10 @@ class CRMClientConnector extends DolibarrApi
 			}
 		}
 		if ($sqlfilters) {
+			// Never filter on the anti-spam fields (the encrypted password could be guessed character by character)
+			if (preg_match('/antispam_|fk_user\b/i', $sqlfilters)) {
+				throw new RestException(400, 'Filter not allowed on the anti-spam fields');
+			}
 			$errormessage = '';
 			$sql .= forgeSQLFromUniversalSearchCriteria($sqlfilters, $errormessage);
 			if ($errormessage) {
@@ -302,7 +306,8 @@ class CRMClientConnector extends DolibarrApi
 				$i++;
 			}
 		} else {
-			throw new RestException(503, 'Error when retrieving emailaccount list: '.$this->db->lasterror());
+			dol_syslog(__METHOD__.' '.$this->db->lasterror(), LOG_ERR);
+			throw new RestException(503, 'Error when retrieving emailaccount list');
 		}
 
 		return $obj_ret;
@@ -633,7 +638,8 @@ class CRMClientConnector extends DolibarrApi
 				$i++;
 			}
 		} else {
-			throw new RestException(503, 'Error when retrieving emaillink list: '.$this->db->lasterror());
+			dol_syslog(__METHOD__.' '.$this->db->lasterror(), LOG_ERR);
+			throw new RestException(503, 'Error when retrieving emaillink list');
 		}
 
 		return $obj_ret;
@@ -800,7 +806,7 @@ class CRMClientConnector extends DolibarrApi
 	 * @param	int		$socid	Thirdparty of the document, 0 if none
 	 * @return	bool
 	 */
-	private function _canReadLinkable($type, $socid)
+	private function _canReadLinkable($type, $socid, $elementid = 0)
 	{
 		if (!isset(self::LINKABLE_TYPE_READ_RIGHTS[$type])) {
 			return false;
@@ -809,7 +815,31 @@ class CRMClientConnector extends DolibarrApi
 		if (!DolibarrApiAccess::$user->hasRight($module, $permlevel1, $permlevel2)) {
 			return false;
 		}
+		// Project: the user must be allowed on this project (contact of the project, or right to read all projects)
+		if ($type === 'proj' && $elementid > 0 && !DolibarrApi::_checkAccessToResource('project', $elementid)) {
+			return false;
+		}
 		return $socid <= 0 || DolibarrApi::_checkAccessToResource('societe', $socid);
+	}
+
+	/**
+	 * Can the API user read a document of a linkable type, found by its id
+	 *
+	 * @param	string	$type		Short type (key of LINKABLE_ELEMENT_TYPES)
+	 * @param	int		$elementid	Id of the document
+	 * @return	bool				False also when the document does not exist
+	 */
+	private function _canReadLinkableId($type, $elementid)
+	{
+		if (!isset(self::LINKABLE_ELEMENT_TYPES[$type]) || $elementid <= 0) {
+			return false;
+		}
+		$targetObject = fetchObjectByElement((int) $elementid, self::LINKABLE_ELEMENT_TYPES[$type]);
+		if (!is_object($targetObject) || empty($targetObject->id)) {
+			return false;
+		}
+		$targetSocid = !empty($targetObject->socid) ? (int) $targetObject->socid : (!empty($targetObject->fk_soc) ? (int) $targetObject->fk_soc : 0);
+		return $this->_canReadLinkable($type, $targetSocid, (int) $elementid);
 	}
 
 	/**
@@ -866,7 +896,7 @@ class CRMClientConnector extends DolibarrApi
 			}
 			foreach ($objects as $linkedObject) {
 				$linkedSocid = !empty($linkedObject->socid) ? (int) $linkedObject->socid : (!empty($linkedObject->fk_soc) ? (int) $linkedObject->fk_soc : 0);
-				if (!$this->_canReadLinkable($typeByElement[$elementtype], $linkedSocid)) {
+				if (!$this->_canReadLinkable($typeByElement[$elementtype], $linkedSocid, (int) $linkedObject->id)) {
 					continue; // Document the user is not allowed to see
 				}
 				$result[] = array(
@@ -927,7 +957,7 @@ class CRMClientConnector extends DolibarrApi
 			throw new RestException(404, ucfirst($elementtype).' not found');
 		}
 		$targetSocid = !empty($targetObject->socid) ? (int) $targetObject->socid : (!empty($targetObject->fk_soc) ? (int) $targetObject->fk_soc : 0);
-		if (!$this->_canReadLinkable($type, $targetSocid)) {
+		if (!$this->_canReadLinkable($type, $targetSocid, $elementid)) {
 			throw new RestException(403, 'Not allowed to read this '.$elementtype);
 		}
 
@@ -991,6 +1021,10 @@ class CRMClientConnector extends DolibarrApi
 		$emaillink = $this->_fetchEmailLinkReadOnly($accountEmail, $msgId);
 		if (!$emaillink) {
 			throw new RestException(404, 'EmailLink not found');
+		}
+		// Same access rule as linking: only a document the user is allowed to see
+		if (!$this->_canReadLinkableId($type, $elementid)) {
+			throw new RestException(403, 'Not allowed to read this document');
 		}
 
 		$elementtype = self::LINKABLE_ELEMENT_TYPES[$type];
@@ -1182,6 +1216,11 @@ class CRMClientConnector extends DolibarrApi
 			throw new RestException(403);
 		}
 
+		// The document itself must be visible to the user (sales representative restriction, project...)
+		if (isset(self::LINKABLE_ELEMENT_TYPES[$type]) && !$this->_canReadLinkableId($type, (int) $id)) {
+			throw new RestException(403, 'Not allowed to read this document');
+		}
+
 		require_once DOL_DOCUMENT_ROOT.'/categories/class/categorie.class.php';
 		$categorie = new Categorie($this->db);
 
@@ -1279,7 +1318,8 @@ class CRMClientConnector extends DolibarrApi
 			throw new RestException(404, 'EmailLink not found');
 		}
 
-		return $this->indexEmailUserMsg($sortfield, $sortorder, $limit, 0,'',  '');
+		// Notes of this mail only
+		return $this->indexEmailUserMsg($sortfield, $sortorder, $limit, (int) $page, '(t.fk_email_link:=:'.((int) $this->emaillink->id).')', $properties);
 	}
 
 	/**
@@ -1388,7 +1428,8 @@ class CRMClientConnector extends DolibarrApi
 				$i++;
 			}
 		} else {
-			throw new RestException(503, 'Error when retrieving emailusermsg list: '.$this->db->lasterror());
+			dol_syslog(__METHOD__.' '.$this->db->lasterror(), LOG_ERR);
+			throw new RestException(503, 'Error when retrieving emailusermsg list');
 		}
 
 		return $obj_ret;
@@ -1704,7 +1745,8 @@ class CRMClientConnector extends DolibarrApi
 		$sql .= " ORDER BY date_log DESC";
 		$resql = $this->db->query($sql);
 		if (!$resql) {
-			throw new RestException(500, $this->db->lasterror());
+			dol_syslog(__METHOD__.' '.$this->db->lasterror(), LOG_ERR);
+			throw new RestException(500, 'Error when reading the anti-spam log');
 		}
 		$alerts = array();
 		while ($obj = $this->db->fetch_object($resql)) {
@@ -1931,6 +1973,12 @@ class CRMClientConnector extends DolibarrApi
 		unset($object->canvas);
 		// Encrypted password of the anti-spam connection of an email account
 		unset($object->antispam_password);
+		// Connection of the anti-spam (login, server, last error): administrators only
+		if (empty(DolibarrApiAccess::$user->admin) && $object instanceof EmailAccount) {
+			foreach (array('antispam_auth_mode', 'antispam_login', 'antispam_imap_host', 'antispam_imap_port', 'antispam_imap_encryption', 'antispam_last_error') as $key) {
+				unset($object->$key);
+			}
+		}
 
 		// If object has lines, remove $db property
 		if (isset($object->lines) && is_array($object->lines) && count($object->lines) > 0) {

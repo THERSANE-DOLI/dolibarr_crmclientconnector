@@ -1,5 +1,17 @@
 # CHANGELOG CRMCLIENTCONNECTOR FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
+## 1.5.18
+
+- FIX: hardening of the REST API:
+  - documents linked to a mail: a project is only listed, linked or unlinked when the user is allowed on it, a
+    link can only be removed for a document the user can see, and the categories of a document need the access to
+    the document itself
+  - GET emailusermsgs with accountEmail and msgId returned the notes of all the mails, it now returns the notes of
+    this mail only
+  - email accounts: the anti-spam connection (login, server, last error) is only returned to administrators, the
+    encrypted password never, and the list can no longer be filtered on the anti-spam fields nor the owner
+  - the SQL errors are written in the log instead of being returned to the caller
+
 ## 1.5.17
 
 - FIX: hardening of the pages and of the anti-spam:
