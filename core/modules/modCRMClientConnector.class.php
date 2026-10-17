@@ -66,7 +66,7 @@ class modCRMClientConnector extends DolibarrModules
 
 		// DESCRIPTION_FLAG
 		// Module description, used if translation string 'ModuleCRMClientConnectorDesc' not found (CRMClientConnector is name of module).
-		$this->description = "CRMClientConnectorDescription";
+		$this->description = "ModuleCRMClientConnectorDesc";
 		// Used only if file README.md and README-LL.md not found.
 		$this->descriptionlong = "CRMClientConnectorDescription";
 
@@ -76,7 +76,7 @@ class modCRMClientConnector extends DolibarrModules
 		$this->editor_squarred_logo = '';					// Must be image filename into the module/img directory followed with @modulename. Example: 'myimage.png@crmclientconnector'
 
 		// Possible values for version are: 'development', 'experimental', 'dolibarr', 'dolibarr_deprecated', 'experimental_deprecated' or a version string like 'x.y.z'
-		$this->version = '1.5.19';
+		$this->version = '1.6.0';
 		// Url to the file with your last numberversion of this module
 		$this->url_last_version = 'https://raw.githubusercontent.com/THERSANE-DOLI/dolibarr_crmclientconnector/refs/heads/main/last-version.txt';
 
@@ -417,7 +417,7 @@ class modCRMClientConnector extends DolibarrModules
 		$this->menu[$r++]=array(
 			'fk_menu'=>'fk_mainmenu=tools',
 			'type'=>'left',
-			'titre'=>'CRM client connector',
+			'titre'=>'CRMClientConnectorMenu',
 			'prefix' => img_picto('', 'email', 'class="paddingright pictofixedwidth valignmiddle"'),
 			'mainmenu'=>'tools',
 			'leftmenu'=>'emailaccount',
@@ -433,7 +433,7 @@ class modCRMClientConnector extends DolibarrModules
 		$this->menu[$r++]=array(
 			'fk_menu'=>'fk_mainmenu=tools,fk_leftmenu=emailaccount',
 			'type'=>'left',
-			'titre'=>'List email accounts',
+			'titre'=>'ListOfEmailAccounts',
 			'mainmenu'=>'tools',
 			'leftmenu'=>'emailaccount_list',
 			'url'=>'/crmclientconnector/emailaccount_list.php',
@@ -448,7 +448,7 @@ class modCRMClientConnector extends DolibarrModules
 		$this->menu[$r++]=array(
 			'fk_menu'=>'fk_mainmenu=tools,fk_leftmenu=emailaccount',
 			'type'=>'left',
-			'titre'=>'New Email account',
+			'titre'=>'NewEmailAccount',
 			'mainmenu'=>'tools',
 			'leftmenu'=>'emailaccount_new',
 			'url'=>'/crmclientconnector/emailaccount_card.php?action=create',

@@ -1,0 +1,81 @@
+# Translation file - nl_NL
+# CRM Client Connector
+
+#
+# Generic
+#
+ModuleCRMClientConnectorName = CRM Client Connector
+ModuleCRMClientConnectorDesc = Voegt API's en hulpmiddelen toe voor koppelingen met externe toepassingen, zoals Thunderbird.
+CRMClientConnectorDescription = Voegt API's en hulpmiddelen toe voor koppelingen met externe toepassingen, zoals Thunderbird.
+
+#
+# Admin page
+#
+CRMClientConnectorSetup = Instellingen CRM Client Connector
+Settings = Instellingen
+CRMClientConnectorSetupPage = Instellingenpagina CRM Client Connector
+NewSection = Nieuwe sectie
+
+#
+# About page
+#
+About = Over
+CRMClientConnectorAbout = Over CRM Client Connector
+CRMClientConnectorAboutPage = Informatiepagina CRM Client Connector
+
+#
+# Menus
+#
+CRMClientConnectorArea = Startpagina CRM Client Connector
+CRMClientConnectorMenu = CRM-koppeling e-mail
+ListOfEmailAccounts = Lijst e-mailaccounts
+NewEmailAccount = Nieuw e-mailaccount
+
+#
+# Objects
+#
+EmailAccounts = E-mailaccounts
+EmailAccount = E-mailaccount
+ShowEmailAccount = E-mailaccount tonen
+DeleteEmailAccount = E-mailaccount verwijderen
+ConfirmActionEmailAccount = Weet u zeker dat u deze actie wilt uitvoeren op e-mailaccount %s?
+EmailLink = E-mailkoppeling
+ShowEmailLink = E-mailkoppeling tonen
+EmailMessage = E-mailbericht
+EmailUserMsg = Gebruikersbericht bij e-mail
+EmailUserMsgs = Gebruikersberichten bij e-mail
+ShowEmailUserMsg = Gebruikersbericht tonen
+DeleteEmailUserMsg = Gebruikersbericht verwijderen
+ConfirmActionEmailUserMsg = Weet u zeker dat u deze actie wilt uitvoeren op gebruikersbericht %s?
+ErrorNumberingModuleNotSetup = Fout: nummeringsmodule niet ingesteld voor object %s
+
+#
+# Dictionary
+#
+ExcludedMailDomains = Uitgesloten e-maildomeinen
+DomainTooltipHelp = E-maildomeinen die worden overgeslagen bij het zoeken naar relaties op basis van het e-maildomein (bijv. gmail.com, hotmail.com)
+ThisModuleAddNewDictionary = Deze module voegt een nieuw woordenboek toe
+ThisModuleAddNewDictionaryDesc = Zie de pagina Woordenboeken
+
+#
+# Setup page texts
+#
+ThisModuleAddObjectEmailAccount = Lijst van e-mailaccounts die verbinding mogen maken
+ThisModuleAddObjectEmailAccountLink = Pagina openen
+ThisModuleAddObjectEmailAccountDesc = Deze lijst bepaalt welke e-mailaccounts met de Dolibarr-API's mogen werken. De Thunderbird-add-on "Thunderbird Dolibarr Connector" gebruikt deze lijst bijvoorbeeld om te bepalen of hij de optie toont om een notitie en/of opmerking aan een e-mail toe te voegen.
+NewUsersRightsForCRMClientConnector = Nieuwe gebruikersrechten
+NewUsersRightsForCRMClientConnectorDesc = Vergeet niet de juiste rechten toe te kennen aan gebruikers die via een externe toepassing, zoals de Thunderbird Dolibarr Connector, met Dolibarr verbinden.
+
+#
+# Permissions
+#
+Permission14191101 = E-mailkoppelingen inzien
+Permission14191102 = E-mailkoppelingen aanmaken/wijzigen
+Permission14191103 = E-mailkoppelingen verwijderen
+Permission14191111 = E-mailaccounts inzien
+Permission14191112 = E-mailaccounts aanmaken/wijzigen
+Permission14191113 = E-mailaccounts verwijderen
+Permission14191131 = Gebruikersberichten bij e-mail inzien
+Permission14191132 = Gebruikersberichten bij e-mail aanmaken/wijzigen
+Permission14191133 = Gebruikersberichten bij e-mail verwijderen
+Permission14191141 = Uitgesloten e-maildomeinen inzien

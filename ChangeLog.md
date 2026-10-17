@@ -1,5 +1,15 @@
 # CHANGELOG CRMCLIENTCONNECTOR FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
+## 1.6.0
+
+- NEW: Dutch translation (langs/nl_NL)
+
+## 1.5.20
+
+- FIX: translations: the status of the email accounts was written in French (Brouillon / Actif / Désactivé), it now
+  follows the language of the user (core keys Draft / Enabled / Disabled); the titles of the left menus and the
+  description of the module are translated, and the labels of the rights of the module are added
+
 ## 1.5.19
 
 - FIX: REST API: a sales representative restricted to his thirdparties got an HTTP 403 when reading, changing or

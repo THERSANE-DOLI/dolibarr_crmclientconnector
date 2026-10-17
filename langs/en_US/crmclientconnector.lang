@@ -30,11 +30,11 @@ EmailAccounts = Email accounts
 EmailAccount = Email account
 ExcludedMailDomains = Excluded email domains
 DomainTooltipHelp = Excluded email domains for search thirdparty based on email domains
-ThisModuleAddNewDictionary = This module add new dictionary
+ThisModuleAddNewDictionary = This module adds a new dictionary
 ThisModuleAddNewDictionaryDesc = See dictionary page
 ThisModuleAddObjectEmailAccount = List of email accounts authorized to connect
 ThisModuleAddObjectEmailAccountLink = Visit page
-ThisModuleAddObjectEmailAccountDesc = This list of email accounts defines which mails accounts are allowed to interact with the Dolibarr APIs. For example, the "Thunderbird Dolibarr Connector" module uses this list to determine whether it should offer the option to add a note and/or a comment to an email.
+ThisModuleAddObjectEmailAccountDesc = This list of email accounts defines which mail accounts are allowed to interact with the Dolibarr APIs. For example, the "Thunderbird Dolibarr Connector" module uses this list to determine whether it should offer the option to add a note and/or a comment to an email.
 NewUsersRightsForCRMClientConnector = New rights for users
 NewUsersRightsForCRMClientConnectorDesc = Remember to grant the appropriate permissions to users who connect to Dolibarr using a client application, such as the Thunderbird Dolibarr Connector module.
 
@@ -201,3 +201,33 @@ AntispamImpersonationAmbiguousFrom = several senders in the email, including the
 AntispamImpersonationDisplayName = the display name of the sender holds the address %s, which is not the real sending address
 AntispamReservedToAdmin = Reserved to administrators
 CrmClientConnectorOnlyOwnNotes = Only your own notes can be deleted: the notes of the other users were left out.
+
+#
+# Menus, objects and permissions (contribution of RealRidrick, PR #2)
+#
+CRMClientConnectorDescription = Adds APIs and tools for external application plugins, such as Thunderbird or other apps.
+CRMClientConnectorMenu = CRM client connector
+ListOfEmailAccounts = List of email accounts
+NewEmailAccount = New email account
+ShowEmailAccount = Show email account
+DeleteEmailAccount = Delete email account
+ConfirmActionEmailAccount = Are you sure you want to perform this action on email account %s?
+EmailLink = Email link
+ShowEmailLink = Show email link
+EmailMessage = Email message
+EmailUserMsg = Email user message
+EmailUserMsgs = Email user messages
+ShowEmailUserMsg = Show email user message
+DeleteEmailUserMsg = Delete email user message
+ConfirmActionEmailUserMsg = Are you sure you want to perform this action on email user message %s?
+ErrorNumberingModuleNotSetup = Error: numbering module not set up for object %s
+Permission14191101 = Read email links
+Permission14191102 = Create/update email links
+Permission14191103 = Delete email links
+Permission14191111 = Read email accounts
+Permission14191112 = Create/update email accounts
+Permission14191113 = Delete email accounts
+Permission14191131 = Read email user messages
+Permission14191132 = Create/update email user messages
+Permission14191133 = Delete email user messages
+Permission14191141 = Read excluded email domains
