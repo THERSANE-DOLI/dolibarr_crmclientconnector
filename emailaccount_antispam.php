@@ -21,6 +21,12 @@
  *  \brief      Tab "Anti-spam" of an email account: activation, owner, junk folders, connection test
  */
 
+// Every action of this page needs the token, also in GET (scan, test, edit read the mailbox): with the default CSRF
+// level of Dolibarr 18, main.inc.php only checks the token of GET actions with some names (add, update, delete...)
+if (!defined('CSRFCHECK_WITH_TOKEN')) {
+	define('CSRFCHECK_WITH_TOKEN', '1');
+}
+
 // Load Dolibarr environment
 $res = 0;
 // Try main.inc.php into web root known defined into CONTEXT_DOCUMENT_ROOT (not always defined)

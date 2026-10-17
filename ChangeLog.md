@@ -1,5 +1,11 @@
 # CHANGELOG CRMCLIENTCONNECTOR FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
+## 1.5.15
+
+- FIX: CSRF on the « Anti-spam » tab of an email account with Dolibarr 18: the scan now, connection test and edition
+  could be run by a link or an image without the security token (the default CSRF level of Dolibarr 18 only checks
+  the token of GET actions with some names). Every action of the tab now needs the token.
+
 ## 1.5.14
 
 - FIX: REST API antispam/check: the name of the contact whose address is spoofed was returned without checking the
