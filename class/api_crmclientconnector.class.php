@@ -1781,8 +1781,16 @@ class CRMClientConnector extends DolibarrApi
 		if ($contactid <= 0) {
 			return null;
 		}
-		$obj = $this->db->getRow("SELECT firstname, lastname FROM ".$this->db->prefix()."socpeople WHERE rowid = ".((int) $contactid));
-		return $obj ? array('id' => (int) $contactid, 'name' => trim($obj->firstname.' '.$obj->lastname)) : null;
+		// Right to read the contacts, sales representative restricted to his thirdparties
+		if (!DolibarrApiAccess::$user->hasRight('societe', 'contact', 'lire') || !DolibarrApi::_checkAccessToResource('contact', $contactid, 'socpeople&societe')) {
+			return null;
+		}
+		$obj = $this->db->getRow("SELECT firstname, lastname, priv, fk_user_creat FROM ".$this->db->prefix()."socpeople WHERE rowid = ".((int) $contactid));
+		// Private contact of another user
+		if (!$obj || (!empty($obj->priv) && (int) $obj->fk_user_creat !== (int) DolibarrApiAccess::$user->id)) {
+			return null;
+		}
+		return array('id' => (int) $contactid, 'name' => trim($obj->firstname.' '.$obj->lastname));
 	}
 
 	/**

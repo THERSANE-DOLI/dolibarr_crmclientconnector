@@ -1,5 +1,11 @@
 # CHANGELOG CRMCLIENTCONNECTOR FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
+## 1.5.14
+
+- FIX: REST API antispam/check: the name of the contact whose address is spoofed was returned without checking the
+  right to read the contacts, the restriction of a sales representative to his thirdparties nor the private contacts
+  of the other users. The spoofing alert is still given, without the name of a contact the user can't see.
+
 ## 1.5.13
 
 - FIX: notes on mails and links between mails and documents: the REST API copied every posted field into the object,
