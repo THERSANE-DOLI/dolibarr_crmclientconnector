@@ -488,6 +488,19 @@ class EmailAccount extends CommonObject
 	 */
 	public function update(User $user, $notrigger = 0)
 	{
+		// Anti-spam: in master user mode the login of the mailbox is its address. A new address set by a user who is not
+		// an administrator stops the scan of this mailbox, until an administrator enables it again.
+		if (empty($user->admin) && !empty($this->id) && !empty($this->antispam_active)) {
+			$obj = $this->db->getRow("SELECT email_account FROM ".$this->db->prefix().$this->table_element." WHERE rowid = ".((int) $this->id));
+			if (is_object($obj) && (string) $obj->email_account !== (string) $this->email_account) {
+				$this->antispam_active = 0;
+				if (!isset($this->fields['antispam_active'])) {
+					// Field removed from the generic card (removeAntispamFields()): saved directly
+					$this->db->query("UPDATE ".$this->db->prefix().$this->table_element." SET antispam_active = 0 WHERE rowid = ".((int) $this->id));
+				}
+			}
+		}
+
 		return $this->updateCommon($user, $notrigger);
 	}
 

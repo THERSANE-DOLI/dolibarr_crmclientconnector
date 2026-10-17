@@ -1,5 +1,13 @@
 # CHANGELOG CRMCLIENTCONNECTOR FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
+## 1.5.12
+
+- FIX: anti-spam: with the Dovecot master user, the login of a mailbox is its address, so a user allowed to change
+  the email accounts could have any mailbox of the server opened (folders, scan, log) by changing the address.
+  Opening the mailbox (connection test, scan now, folders read on the server, activation) is now reserved to
+  administrators, a new address set by another user stops the scan of the mailbox until an administrator enables it
+  again, and the IMAP login (which holds the name of the master user) is only shown to administrators.
+
 ## 1.5.11
 
 - FIX: stored XSS: linking a mail to a document through the REST API created the email account with the address

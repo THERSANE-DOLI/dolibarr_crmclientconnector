@@ -94,7 +94,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 if (!CrmClientConnectorAntispamImap::isEnabled()) {
 	crmclientconnectorAntispamAnswer(array('success' => false, 'error' => 'Feature disabled'), 403);
 }
-if (!$user->admin && !$user->hasRight('crmclientconnector', 'emailaccount', 'write')) {
+// Activation of the scan = the scheduled job opens the mailbox: administrators only (see emailaccount_antispam.php)
+if (empty($user->admin)) {
 	crmclientconnectorAntispamAnswer(array('success' => false, 'error' => $langs->transnoentitiesnoconv('NotEnoughPermissions')), 403);
 }
 
