@@ -1,5 +1,12 @@
 # CHANGELOG CRMCLIENTCONNECTOR FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
+## 1.5.19
+
+- FIX: REST API: a sales representative restricted to his thirdparties got an HTTP 403 when reading, changing or
+  deleting an email account, a link or a note by its id (even his own note, from DoliConnector): the check of the
+  thirdparty was made on tables that have no thirdparty. The rights of the module (and the author of a note) are
+  the access rule of these objects.
+
 ## 1.5.18
 
 - FIX: hardening of the REST API:

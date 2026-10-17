@@ -200,9 +200,8 @@ class CRMClientConnector extends DolibarrApi
 		if (!DolibarrApiAccess::$user->hasRight('crmclientconnector', 'emailaccount', 'read')) {
 			throw new RestException(403);
 		}
-		if (!DolibarrApi::_checkAccessToResource('emailaccount', $id, 'crmclientconnector_emailaccount')) {
-			throw new RestException(403, 'Access to instance id='.$id.' of object not allowed for login '.DolibarrApiAccess::$user->login);
-		}
+		// No thirdparty nor entity on the objects of this module: the rights of the module are the access rule (a
+		// thirdparty check made the request fail for a sales representative restricted to his thirdparties)
 
 		$result = $this->emailaccount->fetch($id);
 		if (!$result) {
@@ -380,9 +379,8 @@ class CRMClientConnector extends DolibarrApi
 		if (!DolibarrApiAccess::$user->hasRight('crmclientconnector', 'emailaccount', 'write')) {
 			throw new RestException(403);
 		}
-		if (!DolibarrApi::_checkAccessToResource('emailaccount', $id, 'crmclientconnector_emailaccount')) {
-			throw new RestException(403, 'Access to instance id='.$this->emailaccount->id.' of object not allowed for login '.DolibarrApiAccess::$user->login);
-		}
+		// No thirdparty nor entity on the objects of this module: the rights of the module are the access rule (a
+		// thirdparty check made the request fail for a sales representative restricted to his thirdparties)
 
 		$result = $this->emailaccount->fetch($id);
 		if (!$result) {
@@ -444,9 +442,8 @@ class CRMClientConnector extends DolibarrApi
 		if (!DolibarrApiAccess::$user->hasRight('crmclientconnector', 'emailaccount', 'delete')) {
 			throw new RestException(403);
 		}
-		if (!DolibarrApi::_checkAccessToResource('emailaccount', $id, 'crmclientconnector_emailaccount')) {
-			throw new RestException(403, 'Access to instance id='.$this->emailaccount->id.' of object not allowed for login '.DolibarrApiAccess::$user->login);
-		}
+		// No thirdparty nor entity on the objects of this module: the rights of the module are the access rule (a
+		// thirdparty check made the request fail for a sales representative restricted to his thirdparties)
 
 		$result = $this->emailaccount->fetch($id);
 		if (!$result) {
@@ -536,9 +533,8 @@ class CRMClientConnector extends DolibarrApi
 		if (!DolibarrApiAccess::$user->hasRight('crmclientconnector', 'emaillink', 'read')) {
 			throw new RestException(403);
 		}
-		if (!DolibarrApi::_checkAccessToResource('emaillink', $id, 'crmclientconnector_emaillink')) {
-			throw new RestException(403, 'Access to instance id='.$id.' of object not allowed for login '.DolibarrApiAccess::$user->login);
-		}
+		// No thirdparty nor entity on the objects of this module: the rights of the module are the access rule (a
+		// thirdparty check made the request fail for a sales representative restricted to his thirdparties)
 
 		$result = $this->emaillink->fetch($id);
 		if (!$result) {
@@ -693,9 +689,8 @@ class CRMClientConnector extends DolibarrApi
 		if (!DolibarrApiAccess::$user->hasRight('crmclientconnector', 'emaillink', 'write')) {
 			throw new RestException(403);
 		}
-		if (!DolibarrApi::_checkAccessToResource('emaillink', $id, 'crmclientconnector_emaillink')) {
-			throw new RestException(403, 'Access to instance id='.$this->emaillink->id.' of object not allowed for login '.DolibarrApiAccess::$user->login);
-		}
+		// No thirdparty nor entity on the objects of this module: the rights of the module are the access rule (a
+		// thirdparty check made the request fail for a sales representative restricted to his thirdparties)
 
 		$result = $this->emaillink->fetch($id);
 		if (!$result) {
@@ -731,9 +726,8 @@ class CRMClientConnector extends DolibarrApi
 		if (!DolibarrApiAccess::$user->hasRight('crmclientconnector', 'emaillink', 'delete')) {
 			throw new RestException(403);
 		}
-		if (!DolibarrApi::_checkAccessToResource('emaillink', $id, 'crmclientconnector_emaillink')) {
-			throw new RestException(403, 'Access to instance id='.$this->emaillink->id.' of object not allowed for login '.DolibarrApiAccess::$user->login);
-		}
+		// No thirdparty nor entity on the objects of this module: the rights of the module are the access rule (a
+		// thirdparty check made the request fail for a sales representative restricted to his thirdparties)
 
 		$result = $this->emaillink->fetch($id);
 		if (!$result) {
@@ -1277,9 +1271,8 @@ class CRMClientConnector extends DolibarrApi
 		if (!DolibarrApiAccess::$user->hasRight('crmclientconnector', 'emailusermsg', 'read')) {
 			throw new RestException(403);
 		}
-		if (!DolibarrApi::_checkAccessToResource('emailusermsg', $id, 'crmclientconnector_emailusermsg')) {
-			throw new RestException(403, 'Access to instance id='.$id.' of object not allowed for login '.DolibarrApiAccess::$user->login);
-		}
+		// No thirdparty nor entity on the objects of this module: the rights of the module are the access rule (a
+		// thirdparty check made the request fail for a sales representative restricted to his thirdparties)
 
 		$result = $this->emailusermsg->fetch($id);
 		if (!$result) {
@@ -1536,9 +1529,8 @@ class CRMClientConnector extends DolibarrApi
 		if (!DolibarrApiAccess::$user->hasRight('crmclientconnector', 'emailusermsg', 'write')) {
 			throw new RestException(403);
 		}
-		if (!DolibarrApi::_checkAccessToResource('emailusermsg', $id, 'crmclientconnector_emailusermsg')) {
-			throw new RestException(403, 'Access to instance id='.$this->emailusermsg->id.' of object not allowed for login '.DolibarrApiAccess::$user->login);
-		}
+		// No thirdparty nor entity on the objects of this module: the rights of the module are the access rule (a
+		// thirdparty check made the request fail for a sales representative restricted to his thirdparties)
 
 		$result = $this->emailusermsg->fetch($id);
 		if (!$result) {
@@ -1576,9 +1568,8 @@ class CRMClientConnector extends DolibarrApi
 		if (!DolibarrApiAccess::$user->hasRight('crmclientconnector', 'emailusermsg', 'delete')) {
 			throw new RestException(403);
 		}
-		if (!DolibarrApi::_checkAccessToResource('emailusermsg', $id, 'crmclientconnector_emailusermsg')) {
-			throw new RestException(403, 'Access to instance id='.$this->emailusermsg->id.' of object not allowed for login '.DolibarrApiAccess::$user->login);
-		}
+		// No thirdparty nor entity on the objects of this module: the rights of the module are the access rule (a
+		// thirdparty check made the request fail for a sales representative restricted to his thirdparties)
 
 		$result = $this->emailusermsg->fetch($id);
 		if (!$result) {
