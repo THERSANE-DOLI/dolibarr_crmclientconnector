@@ -1,5 +1,12 @@
 # CHANGELOG CRMCLIENTCONNECTOR FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
+## 1.5.9
+
+- FIX: the card of an email account saved the anti-spam fields posted with it (server, connection mode, owner,
+  password...), although they are hidden and reserved to the « Anti-spam » tab: a user allowed to change the email
+  accounts could set his own server and receive the password of the Dovecot master user when testing the
+  connection. These fields are no longer saved by the card, nor searchable in the list.
+
 ## 1.5.8
 
 - FIX: the home page of the module did not check any right: one of the rights to read the email accounts, the

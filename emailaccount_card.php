@@ -133,6 +133,10 @@ if (empty($action) && empty($id) && empty($ref)) {
 // Load object
 include DOL_DOCUMENT_ROOT.'/core/actions_fetchobject.inc.php'; // Must be include, not include_once.
 
+// The anti-spam fields (connection of the mailbox, owner, password) are managed only by the "Anti-spam" tab, with its own
+// rights: never saved from this card, where the generic actions save every posted field, even the hidden ones
+$object->removeAntispamFields();
+
 // There is several ways to check permission.
 // Set $enablepermissioncheck to 1 to enable a minimum low level of checks
 $enablepermissioncheck = 1;

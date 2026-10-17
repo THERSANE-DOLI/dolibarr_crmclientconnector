@@ -492,6 +492,31 @@ class EmailAccount extends CommonObject
 	}
 
 	/**
+	 * Fields of the anti-spam, managed only by the "Anti-spam" tab (connection, owner, password, state of the scan)
+	 *
+	 * @return string[]
+	 */
+	public static function getAntispamFieldKeys()
+	{
+		return array('fk_user', 'antispam_active', 'antispam_junk_folders', 'antispam_tasks', 'antispam_date_last_scan', 'antispam_last_error',
+			'antispam_auth_mode', 'antispam_login', 'antispam_password', 'antispam_imap_host', 'antispam_imap_port', 'antispam_imap_encryption');
+	}
+
+	/**
+	 * Remove the anti-spam fields from $this->fields, for the generic card and list (core/actions_addupdatedelete.inc.php
+	 * saves every posted field of $this->fields, even the hidden ones, and the list allows to search on every field).
+	 * Call it after the fetch: create() and update() then leave these columns unchanged.
+	 *
+	 * @return void
+	 */
+	public function removeAntispamFields()
+	{
+		foreach (self::getAntispamFieldKeys() as $key) {
+			unset($this->fields[$key]);
+		}
+	}
+
+	/**
 	 * Anti-spam junk folders chosen for this mailbox
 	 *
 	 * @return string[]	IMAP folder paths
