@@ -157,7 +157,10 @@ if ($enablepermissioncheck) {
 $upload_dir = $conf->crmclientconnector->multidir_output[isset($object->entity) ? $object->entity : 1].'/emailaccount';
 
 // Security check (enable the most restrictive one)
-//if ($user->socid > 0) accessforbidden();
+// External users: never (the email accounts and notes are internal data)
+if ($user->socid > 0) {
+	accessforbidden();
+}
 //if ($user->socid > 0) $socid = $user->socid;
 //$isdraft = (isset($object->status) && ($object->status == $object::STATUS_DRAFT) ? 1 : 0);
 //restrictedArea($user, $object->module, $object, $object->table_element, $object->element, 'fk_soc', 'rowid', $isdraft);
@@ -222,7 +225,10 @@ if (empty($reshook)) {
 	$triggersendname = 'CRMCLIENTCONNECTOR_MYOBJECT_SENTBYMAIL';
 	$autocopy = 'MAIN_MAIL_AUTOCOPY_MYOBJECT_TO';
 	$trackid = 'emailaccount'.$object->id;
-	include DOL_DOCUMENT_ROOT.'/core/actions_sendmails.inc.php';
+	// Sending an email from this card needs the right to change the object (any reader could send emails before)
+	if ($permissiontoadd) {
+		include DOL_DOCUMENT_ROOT.'/core/actions_sendmails.inc.php';
+	}
 }
 
 
@@ -535,7 +541,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 
 		if (empty($reshook)) {
 			// Send
-			if (empty($user->socid)) {
+			if (empty($user->socid) && $permissiontoadd) {
 				print dolGetButtonAction('', $langs->trans('SendMail'), 'default', $_SERVER["PHP_SELF"].'?id='.$object->id.'&action=presend&token='.newToken().'&mode=init#formmailbeforetitle');
 			}
 

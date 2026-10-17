@@ -91,6 +91,9 @@ function crmclientconnectorAntispamAnswer($data, $httpCode = 200)
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 	crmclientconnectorAntispamAnswer(array('success' => false, 'error' => 'Bad method'), 405);
 }
+if ($user->socid > 0) {
+	crmclientconnectorAntispamAnswer(array('success' => false, 'error' => 'Not allowed'), 403);
+}
 if (!CrmClientConnectorAntispamImap::isEnabled()) {
 	crmclientconnectorAntispamAnswer(array('success' => false, 'error' => 'Feature disabled'), 403);
 }

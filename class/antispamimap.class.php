@@ -225,6 +225,19 @@ class CrmClientConnectorAntispamImap
 	}
 
 	/**
+	 * Can an IMAP folder path be stored and shown in a form: no quote, angle bracket nor line break (a folder name is
+	 * chosen by the owner of the mailbox)
+	 *
+	 * @param	string	$path	IMAP folder path
+	 * @return	bool
+	 */
+	public static function isSafeFolderPath($path)
+	{
+		$path = (string) $path;
+		return $path !== '' && strlen($path) <= 255 && !preg_match('/["\'<>\r\n\x00]/', $path);
+	}
+
+	/**
 	 * Readable name of an IMAP folder path (paths are encoded in modified UTF-7)
 	 *
 	 * @param	string	$path	IMAP folder path (ex: INBOX/Ind&AOk-sirables)

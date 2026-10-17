@@ -302,6 +302,12 @@ class EmailAccount extends CommonObject
 		unset($object->id);
 		unset($object->fk_user_creat);
 		unset($object->import_key);
+		// Never copy the anti-spam settings of the mailbox (connection, password, owner): the copy starts with the anti-spam off
+		foreach (self::getAntispamFieldKeys() as $key) {
+			$object->$key = null;
+		}
+		$object->antispam_active = 0;
+		$object->antispam_auth_mode = 'master';
 
 		// Clear fields
 		if (property_exists($object, 'ref')) {
@@ -587,7 +593,8 @@ class EmailAccount extends CommonObject
 	 */
 	public function setAntispamJunkFolders($folders)
 	{
-		$folders = array_values(array_unique(array_filter(array_map('strval', (array) $folders), 'strlen')));
+		dol_include_once('/crmclientconnector/class/antispamimap.class.php');
+		$folders = array_values(array_unique(array_filter(array_map('strval', (array) $folders), array('CrmClientConnectorAntispamImap', 'isSafeFolderPath'))));
 		$this->antispam_junk_folders = empty($folders) ? null : json_encode($folders);
 	}
 

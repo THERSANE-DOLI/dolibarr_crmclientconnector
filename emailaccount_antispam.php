@@ -103,6 +103,10 @@ if (!isModEnabled('crmclientconnector') || !CrmClientConnectorAntispamImap::isEn
 if (!$permissiontoread || empty($object->id)) {
 	accessforbidden();
 }
+// External users: never (internal data)
+if ($user->socid > 0) {
+	accessforbidden();
+}
 
 $antispamImap = new CrmClientConnectorAntispamImap($db);
 $testResult = null;
@@ -178,7 +182,7 @@ if (empty($reshook)) {
 	if ($action == 'test' && $permissiontoconnect) {
 		$testResult = $antispamImap->testConnection($object);
 		if ($testResult === null) {
-			setEventMessages($antispamImap->error, null, 'errors');
+			setEventMessages(dol_escape_htmltag($antispamImap->error), null, 'errors');
 		} else {
 			setEventMessages($langs->trans('AntispamConnectionOk', $testResult['duration']), null, 'mesgs');
 		}
@@ -189,7 +193,7 @@ if (empty($reshook)) {
 		$scanner = new CrmClientConnectorAntispamScanner($db);
 		$stats = $scanner->scanAccount($object);
 		if ($stats === null) {
-			setEventMessages($scanner->error, null, 'errors');
+			setEventMessages(dol_escape_htmltag($scanner->error), null, 'errors');
 		} else {
 			setEventMessages(CrmClientConnectorAntispamScanner::getSummary($stats), null, 'mesgs');
 		}
@@ -205,7 +209,7 @@ if (empty($reshook)) {
 			$client->disconnect();
 		}
 		if ($serverFolders === null) {
-			setEventMessages($langs->trans('AntispamFoldersNotRead').' '.$antispamImap->error, null, 'warnings');
+			setEventMessages($langs->trans('AntispamFoldersNotRead').' '.dol_escape_htmltag($antispamImap->error), null, 'warnings');
 		}
 	}
 }
@@ -302,7 +306,9 @@ if ($action == 'edit_antispam' && $permissiontoadd) {
 	if (is_array($serverFolders)) {
 		$suggested = array();
 		foreach ($serverFolders as $folder) {
-			if (!$folder['selectable'] || strtoupper($folder['path']) === 'INBOX') {
+			// The path is the value of an HTML option (not escaped by Form::multiselectarray()): never a path with
+			// quotes or angle brackets, the name of a folder is chosen by the owner of the mailbox
+			if (!$folder['selectable'] || strtoupper($folder['path']) === 'INBOX' || !CrmClientConnectorAntispamImap::isSafeFolderPath($folder['path'])) {
 				continue;
 			}
 			$options[$folder['path']] = $folder['name'];
@@ -317,7 +323,7 @@ if ($action == 'edit_antispam' && $permissiontoadd) {
 	}
 	// Keep the chosen folders even if they are not found (any more) on the server
 	foreach ($selectedFolders as $path) {
-		if (!isset($options[$path])) {
+		if (!isset($options[$path]) && CrmClientConnectorAntispamImap::isSafeFolderPath($path)) {
 			$options[$path] = CrmClientConnectorAntispamImap::decodeFolderName($path).(is_array($serverFolders) ? ' ('.$langs->trans('AntispamFolderNotFound').')' : '');
 		}
 	}

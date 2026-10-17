@@ -1,5 +1,16 @@
 # CHANGELOG CRMCLIENTCONNECTOR FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
+## 1.5.17
+
+- FIX: hardening of the pages and of the anti-spam:
+  - external users (users of a thirdparty) can no longer open the email accounts, notes, anti-spam pages and the
+    home page of the module (only the two lists refused them)
+  - sending an email from the card of an email account or of a note needs the right to change it, and a copy of an
+    email account no longer copies its anti-spam settings (connection, password, owner)
+  - anti-spam tab: IMAP folders whose path holds quotes or angle brackets are left out of the pick list and never
+    saved, and the IMAP error messages are escaped
+  - DKIM / SPF alignment: a top level domain alone (ex: « fr ») is never aligned with the sender domain
+
 ## 1.5.16
 
 - FIX: the mail to link, kept when a create page is opened from DoliConnector (accountEmail, msgId), was used by the

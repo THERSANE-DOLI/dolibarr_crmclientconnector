@@ -69,6 +69,10 @@ $permissiontoadd = $user->admin || $user->hasRight('crmclientconnector', 'antisp
 if (!isModEnabled('crmclientconnector') || !CrmClientConnectorAntispamImap::isEnabled() || !$permissiontoadd) {
 	accessforbidden();
 }
+// External users: never (internal data)
+if ($user->socid > 0) {
+	accessforbidden();
+}
 
 $action = GETPOST('action', 'aZ09');
 $id = (int) GETPOST('id', 'int');

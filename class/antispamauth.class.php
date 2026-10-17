@@ -274,7 +274,8 @@ class CrmClientConnectorAntispamAuth
 	{
 		$domain = strtolower(trim($domain));
 		$fromDomain = strtolower(trim($fromDomain));
-		if ($domain === '' || $fromDomain === '') {
+		// A top level domain alone (ex: "fr", "com") is never an aligned domain
+		if ($domain === '' || $fromDomain === '' || strpos($domain, '.') === false) {
 			return false;
 		}
 		return $domain === $fromDomain || substr($fromDomain, -strlen('.'.$domain)) === '.'.$domain;

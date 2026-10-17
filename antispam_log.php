@@ -73,6 +73,10 @@ $readOwn = $readAll || $user->hasRight('crmclientconnector', 'antispamlog', 'rea
 if (!isModEnabled('crmclientconnector') || !CrmClientConnectorAntispamImap::isEnabled() || !$readOwn) {
 	accessforbidden();
 }
+// External users: never (internal data)
+if ($user->socid > 0) {
+	accessforbidden();
+}
 
 $limit = GETPOST('limit', 'int') ? (int) GETPOST('limit', 'int') : $conf->liste_limit;
 $page = GETPOSTISSET('pageplusone') ? ((int) GETPOST('pageplusone', 'int') - 1) : (int) GETPOST('page', 'int');
