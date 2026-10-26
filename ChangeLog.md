@@ -1,5 +1,25 @@
 # CHANGELOG CRMCLIENTCONNECTOR FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
+## 1.9.0
+
+- NEW: API GET crmclientconnector/lookup?email=&domain= finds the thirdparty of an email sender in one call
+  (contact having this email, then thirdparty, then with domain=1 thirdparty of the same email domain unless
+  it is an active excluded domain), used by DoliConnector to show whether the sender is known
+  - needs the right to read thirdparties, contacts only searched with the right to read contacts, private
+    contacts of other users and thirdparties the user can't see are left out
+
+## 1.8.1
+
+- FIX: fatal error on Dolibarr 18 when any object was created, modified or deleted with the module enabled
+  (« Undefined constant InterfaceCRMClientConnectorTriggers::VERSIONS », constant added in Dolibarr 19)
+
+## 1.8.0
+
+- NEW: a project created from DoliConnector (« New project » action of the popup) is linked to the email it was
+  created from, like proposals, orders, tickets and agenda events
+  - trigger PROJECT_CREATE and hook context projectcard: disable then enable the module to register the new
+    hook context
+
 ## 1.7.0
 
 - NEW: German, Italian and Spanish translations, Dutch translation completed: every key of the module (anti-spam

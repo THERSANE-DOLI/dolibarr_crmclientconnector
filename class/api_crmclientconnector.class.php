@@ -90,6 +90,115 @@ class CRMClientConnector extends DolibarrApi
 	}
 
 	/**
+	 * Find the thirdparty of an email sender in one call, for the icon of the DoliConnector button
+	 * (known / unknown sender) : contact having this email first, then thirdparty having this email,
+	 * then (domain=1 only) thirdparty having an email of the same domain, unless the domain is one
+	 * of the active excluded domains. Same order as the search of the DoliConnector popup.
+	 * Only the thirdparties and contacts the user can read are returned.
+	 *
+	 * @param	string	$email		Email of the sender
+	 * @param	int		$domain		1 = also search thirdparties by the domain of the email
+	 * @return	array				{"found": bool, "matchedBy": "contact"|"thirdparty"|"domain"|"", "socid": int, "socname": string, "contactid": int, "contactname": string}
+	 *
+	 * @url	GET lookup
+	 *
+	 * @throws RestException 400 Bad email
+	 * @throws RestException 403 Not allowed
+	 */
+	public function getLookup($email, $domain = 0)
+	{
+		if (!DolibarrApiAccess::$user->hasRight('societe', 'lire')) {
+			throw new RestException(403);
+		}
+		$email = trim((string) $email);
+		if (!isValidEmail($email)) {
+			throw new RestException(400, 'Bad email');
+		}
+
+		$result = array('found' => false, 'matchedBy' => '', 'socid' => 0, 'socname' => '', 'contactid' => 0, 'contactname' => '');
+
+		if (DolibarrApiAccess::$user->hasRight('societe', 'contact', 'lire')) {
+			$sql = 'SELECT sp.rowid, sp.firstname, sp.lastname, sp.fk_soc, s.nom as socname';
+			$sql .= ' FROM '.$this->db->prefix().'socpeople as sp';
+			$sql .= ' LEFT JOIN '.$this->db->prefix().'societe as s ON s.rowid = sp.fk_soc';
+			$sql .= ' WHERE sp.entity IN ('.getEntity('contact').')';
+			$sql .= " AND LOWER(sp.email) = '".$this->db->escape(strtolower($email))."'";
+			$sql .= ' AND (sp.priv = 0 OR sp.fk_user_creat = '.((int) DolibarrApiAccess::$user->id).')';
+			$sql .= ' ORDER BY sp.rowid DESC';
+			$sql .= $this->db->plimit(20);
+			foreach ($this->_lookupRows($sql) as $obj) {
+				if ($obj->fk_soc > 0 ? !DolibarrApi::_checkAccessToResource('societe', $obj->fk_soc) : !DolibarrApi::_checkAccessToResource('contact', $obj->rowid, 'socpeople&societe')) {
+					continue;
+				}
+				$result['found'] = true;
+				$result['matchedBy'] = 'contact';
+				$result['contactid'] = (int) $obj->rowid;
+				$result['contactname'] = trim($obj->firstname.' '.$obj->lastname);
+				$result['socid'] = (int) $obj->fk_soc;
+				$result['socname'] = (string) $obj->socname;
+				if ($obj->fk_soc > 0) {
+					// A contact attached to a thirdparty is the best match, else keep looking for one
+					return $result;
+				}
+			}
+			if ($result['found']) {
+				return $result;
+			}
+		}
+
+		$sql = 'SELECT s.rowid, s.nom as socname FROM '.$this->db->prefix().'societe as s';
+		$sql .= ' WHERE s.entity IN ('.getEntity('societe').')';
+		$sql .= " AND LOWER(s.email) = '".$this->db->escape(strtolower($email))."'";
+		$sql .= ' ORDER BY s.rowid DESC';
+		$sql .= $this->db->plimit(20);
+		foreach ($this->_lookupRows($sql) as $obj) {
+			if (DolibarrApi::_checkAccessToResource('societe', $obj->rowid)) {
+				return array_merge($result, array('found' => true, 'matchedBy' => 'thirdparty', 'socid' => (int) $obj->rowid, 'socname' => (string) $obj->socname));
+			}
+		}
+
+		if ($domain) {
+			$emailDomain = strtolower(substr($email, strrpos($email, '@') + 1));
+			$excluded = $this->db->getRow("SELECT id FROM ".$this->db->prefix()."crmclientconnector_excluded_domains WHERE active = 1 AND LOWER(domain) = '".$this->db->escape($emailDomain)."'");
+			if (empty($excluded)) {
+				$sql = 'SELECT s.rowid, s.nom as socname FROM '.$this->db->prefix().'societe as s';
+				$sql .= ' WHERE s.entity IN ('.getEntity('societe').')';
+				$sql .= " AND LOWER(s.email) LIKE '%@".$this->db->escape($this->db->escapeforlike($emailDomain))."'";
+				$sql .= ' ORDER BY s.rowid DESC';
+				$sql .= $this->db->plimit(20);
+				foreach ($this->_lookupRows($sql) as $obj) {
+					if (DolibarrApi::_checkAccessToResource('societe', $obj->rowid)) {
+						return array_merge($result, array('found' => true, 'matchedBy' => 'domain', 'socid' => (int) $obj->rowid, 'socname' => (string) $obj->socname));
+					}
+				}
+			}
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Rows of a lookup query (see getLookup())
+	 *
+	 * @param	string		$sql	Query
+	 * @return	object[]			Rows, empty on error
+	 */
+	private function _lookupRows($sql)
+	{
+		$rows = array();
+		$resql = $this->db->query($sql);
+		if (!$resql) {
+			dol_syslog(__METHOD__.' '.$this->db->lasterror(), LOG_ERR);
+			return $rows;
+		}
+		while ($obj = $this->db->fetch_object($resql)) {
+			$rows[] = $obj;
+		}
+		$this->db->free($resql);
+		return $rows;
+	}
+
+	/**
 	 * Get properties of a excluded domains dictionnary
 	 *
 	 * Return an array with  excluded domains dictionnary information

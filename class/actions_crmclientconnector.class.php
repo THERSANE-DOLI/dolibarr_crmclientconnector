@@ -66,26 +66,28 @@ class ActionsCRMClientConnector extends CommonHookActions
 	/**
 	 * Overloading the doActions function : replacing the parent's function with the one below.
 	 *
-	 * On the Propal/Commande/Ticket/agenda event create form (context
-	 * 'propalcard'/'ordercard'/'ticketcard'/'actioncard'), the Thunderbird doliconnector
+	 * On the Propal/Commande/Ticket/agenda event/Project create form (context
+	 * 'propalcard'/'ordercard'/'ticketcard'/'actioncard'/'projectcard'), the Thunderbird doliconnector
 	 * extension may open the create page with ?action=create&accountEmail=...&msgId=... so the
 	 * InterfaceCRMClientConnectorTriggers trigger can link the new object to the originating mail
-	 * once created (see PROPAL_CREATE/ORDER_CREATE/TICKET_CREATE/ACTION_CREATE handling there).
+	 * once created (see PROPAL_CREATE/ORDER_CREATE/TICKET_CREATE/ACTION_CREATE/PROJECT_CREATE handling there).
 	 * Those query params are only present on the initial GET though : Dolibarr's create form posts
 	 * back to action=add/create without echoing them (and none of comm/propal/card.php,
 	 * commande/card.php, ticket/card.php or comm/action/card.php print a hook's resprints from
 	 * inside the create form, so injecting hidden fields there is not an option). They are stashed
 	 * in session here instead, and consumed/cleared by the trigger once the object is created.
+	 * The project create form (context 'projectcard', projet/card.php) does print formObjectOptions,
+	 * but goes through the same session stash so every type follows one single path.
 	 *
 	 * @param	array<string,mixed>	$parameters	Array of parameters
-	 * @param	CommonObject		$object		The object to process (Propal, Commande, Ticket or ActionComm here)
+	 * @param	CommonObject		$object		The object to process (Propal, Commande, Ticket, ActionComm or Project here)
 	 * @param	string				$action		'create', 'add', ...
 	 * @param	HookManager			$hookmanager	Hook manager
 	 * @return	int								0 < on error, 0 on success (no action taken), 1 to replace standard code
 	 */
 	public function doActions($parameters, &$object, &$action, $hookmanager)
 	{
-		if (!in_array($parameters['currentcontext'], array('propalcard', 'ordercard', 'ticketcard', 'actioncard'))) {
+		if (!in_array($parameters['currentcontext'], array('propalcard', 'ordercard', 'ticketcard', 'actioncard', 'projectcard'))) {
 			return 0;
 		}
 
@@ -99,7 +101,7 @@ class ActionsCRMClientConnector extends CommonHookActions
 		if (!empty($accountEmail) && !empty($msgId)) {
 			// Kept for the creation of this type of object only, and for a limited time: the pending link must not be
 			// used by an unrelated creation later (ex: a link to a create page opened by mistake, then another document)
-			$elements = array('propalcard' => 'propal', 'ordercard' => 'commande', 'ticketcard' => 'ticket', 'actioncard' => 'action');
+			$elements = array('propalcard' => 'propal', 'ordercard' => 'commande', 'ticketcard' => 'ticket', 'actioncard' => 'action', 'projectcard' => 'project');
 			$_SESSION['crmclientconnector_pending_accountemail'] = $accountEmail;
 			$_SESSION['crmclientconnector_pending_msgid'] = $msgId;
 			$_SESSION['crmclientconnector_pending_element'] = $elements[$parameters['currentcontext']];
