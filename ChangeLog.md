@@ -1,5 +1,10 @@
 # CHANGELOG CRMCLIENTCONNECTOR FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
+## 1.8.1
+
+- FIX: fatal error on Dolibarr 18 when any object was created, modified or deleted with the module enabled
+  (« Undefined constant InterfaceCRMClientConnectorTriggers::VERSIONS », constant added in Dolibarr 19)
+
 ## 1.8.0
 
 - NEW: a project created from DoliConnector (« New project » action of the popup) is linked to the email it was

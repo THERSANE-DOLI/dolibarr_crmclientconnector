@@ -41,7 +41,7 @@ class InterfaceCRMClientConnectorTriggers extends DolibarrTriggers
 		parent::__construct($db);
 		$this->family = "crm";
 		$this->description = "CRMClientConnector triggers.";
-		$this->version = self::VERSIONS['dev'];
+		$this->version = 'development'; // Literal: DolibarrTriggers::VERSIONS doesn't exist before Dolibarr 19
 		$this->picto = 'crmclientconnector@crmclientconnector';
 	}
 
