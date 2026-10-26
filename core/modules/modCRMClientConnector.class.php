@@ -76,7 +76,7 @@ class modCRMClientConnector extends DolibarrModules
 		$this->editor_squarred_logo = '';					// Must be image filename into the module/img directory followed with @modulename. Example: 'myimage.png@crmclientconnector'
 
 		// Possible values for version are: 'development', 'experimental', 'dolibarr', 'dolibarr_deprecated', 'experimental_deprecated' or a version string like 'x.y.z'
-		$this->version = '1.7.0';
+		$this->version = '1.8.0';
 		// Url to the file with your last numberversion of this module
 		$this->url_last_version = 'https://raw.githubusercontent.com/THERSANE-DOLI/dolibarr_crmclientconnector/refs/heads/main/last-version.txt';
 
@@ -125,6 +125,7 @@ class modCRMClientConnector extends DolibarrModules
 					'ordercard',
 					'ticketcard',
 					'actioncard',
+					'projectcard',
 				),
 			),
 			/* END MODULEBUILDER HOOKSCONTEXTS */

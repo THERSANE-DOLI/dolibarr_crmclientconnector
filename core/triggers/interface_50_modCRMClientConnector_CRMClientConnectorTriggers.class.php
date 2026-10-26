@@ -66,6 +66,7 @@ class InterfaceCRMClientConnectorTriggers extends DolibarrTriggers
 			case 'ORDER_CREATE':
 			case 'TICKET_CREATE':
 			case 'ACTION_CREATE':
+			case 'PROJECT_CREATE':
 				return $this->linkObjectToOriginatingMail($object, $user);
 
 			default:
@@ -76,13 +77,13 @@ class InterfaceCRMClientConnectorTriggers extends DolibarrTriggers
 	}
 
 	/**
-	 * Link a just-created Propal/Commande/Ticket/agenda event to the EmailLink of the mail it was
+	 * Link a just-created Propal/Commande/Ticket/agenda event/Project to the EmailLink of the mail it was
 	 * created from, if the create request carried accountEmail/msgId (either directly on this
 	 * request - a future API-driven creation - or stashed in session by
 	 * ActionsCRMClientConnector::doActions() during the create-form GET, since the create form's
 	 * own POST does not resubmit them).
 	 *
-	 * @param	CommonObject	$object	The just-created Propal, Commande, Ticket or ActionComm
+	 * @param	CommonObject	$object	The just-created Propal, Commande, Ticket, ActionComm or Project
 	 * @param	User			$user	User doing the create
 	 * @return	int						0 if nothing to do, >0 on success, <0 on error
 	 */

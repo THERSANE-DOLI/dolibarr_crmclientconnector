@@ -1,5 +1,12 @@
 # CHANGELOG CRMCLIENTCONNECTOR FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
+## 1.8.0
+
+- NEW: a project created from DoliConnector (« New project » action of the popup) is linked to the email it was
+  created from, like proposals, orders, tickets and agenda events
+  - trigger PROJECT_CREATE and hook context projectcard: disable then enable the module to register the new
+    hook context
+
 ## 1.7.0
 
 - NEW: German, Italian and Spanish translations, Dutch translation completed: every key of the module (anti-spam
